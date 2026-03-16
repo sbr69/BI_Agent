@@ -22,16 +22,16 @@ UPLOADS_DIR = os.path.join(os.path.dirname(__file__), "uploads")
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Initialize the query engine on startup."""
-    print("🚀 Starting BI Dashboard Backend...")
+    print("[*] Starting BI Dashboard Backend...")
 
     # Initialize query engine and load all CSVs from data/
     query_engine.initialize(DATA_DIR)
 
     tables = query_engine.get_table_names()
     total_rows = sum(len(query_engine.tables[t]) for t in tables)
-    print(f"✅ Loaded {len(tables)} table(s) with {total_rows:,} total rows")
+    print(f"[+] Loaded {len(tables)} table(s) with {total_rows:,} total rows")
     for t in tables:
-        print(f"   📊 {t}: {len(query_engine.tables[t]):,} rows")
+        print(f"   [table] {t}: {len(query_engine.tables[t]):,} rows")
 
     # Also load any previously uploaded CSVs
     if os.path.isdir(UPLOADS_DIR):
@@ -40,13 +40,13 @@ async def lifespan(app: FastAPI):
                 filepath = os.path.join(UPLOADS_DIR, filename)
                 try:
                     query_engine.load_csv(filepath)
-                    print(f"   📁 (upload) {filename}: loaded")
+                    print(f"   [upload] {filename}: loaded")
                 except Exception as e:
-                    print(f"   ⚠️  (upload) {filename}: failed - {e}")
+                    print(f"   [warn] (upload) {filename}: failed - {e}")
 
     yield
 
-    print("👋 Shutting down...")
+    print("[-] Shutting down...")
 
 
 app = FastAPI(
