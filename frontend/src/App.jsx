@@ -95,15 +95,29 @@ function App() {
             </div>
 
             <div className="flex items-center gap-3">
-              {/* Dataset Indicator */}
-              {activeDataset && (
-                <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-surface-light border border-border text-xs">
-                  <Database size={13} className="text-accent" />
-                  <span className="text-text-secondary">{activeDataset}</span>
-                  {datasets.find(d => d.name === activeDataset) && (
-                    <span className="text-text-muted">
-                      ({datasets.find(d => d.name === activeDataset).row_count.toLocaleString()} rows)
-                    </span>
+              {/* Dataset Selector */}
+              {datasets.length > 0 && (
+                <div className="relative">
+                  {datasets.length === 1 ? (
+                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-surface-light border border-border text-xs">
+                      <Database size={13} className="text-accent" />
+                      <span className="text-text-secondary">{activeDataset}</span>
+                      <span className="text-text-muted">
+                        ({datasets[0].row_count.toLocaleString()} rows)
+                      </span>
+                    </div>
+                  ) : (
+                    <select
+                      value={activeDataset || ""}
+                      onChange={(e) => setActiveDataset(e.target.value)}
+                      className="appearance-none bg-surface-light border border-border rounded-lg px-3 py-1.5 pr-7 text-xs text-text-secondary cursor-pointer outline-none focus:border-primary/40 transition-colors"
+                    >
+                      {datasets.map((d) => (
+                        <option key={d.name} value={d.name}>
+                          📊 {d.name} ({d.row_count.toLocaleString()} rows)
+                        </option>
+                      ))}
+                    </select>
                   )}
                 </div>
               )}
