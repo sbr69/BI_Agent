@@ -15,7 +15,7 @@ from api.models import (
 )
 from core.query_engine import query_engine
 from core.schema import get_schema_description, get_datasets_info
-from core.llm import get_gemini_client
+from core.llm import get_llm_client
 from core.prompts import get_system_prompt, get_followup_prompt
 
 router = APIRouter(prefix="/api")
@@ -82,13 +82,13 @@ async def process_query(request: QueryRequest):
     else:
         system_prompt = get_system_prompt(schema)
 
-    # Call Gemini
+    # Call LLM
     try:
-        gemini = get_gemini_client()
+        llm = get_llm_client()
     except ValueError as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-    llm_response = gemini.generate(system_prompt, request.prompt)
+    llm_response = llm.generate(system_prompt, request.prompt)
 
     # If LLM returned an error, pass it through
     if llm_response.get("error"):

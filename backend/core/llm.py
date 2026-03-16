@@ -1,46 +1,49 @@
 """
-Gemini LLM Client — handles API calls and structured JSON parsing.
+Groq LLM Client — handles API calls and structured JSON parsing.
+Uses Llama 3.3 70B via Groq for fast inference.
 """
 
 import json
 import os
 import re
-import google.generativeai as genai
+from groq import Groq
 from dotenv import load_dotenv
 
 load_dotenv()
 
 
-class GeminiClient:
-    """Wrapper for Google Gemini API with structured output parsing."""
+class GroqClient:
+    """Wrapper for Groq API with structured output parsing."""
 
     def __init__(self):
-        api_key = os.getenv("GEMINI_API_KEY")
+        api_key = os.getenv("GROQ_API_KEY")
         if not api_key:
             raise ValueError(
-                "GEMINI_API_KEY not found. Set it in your .env file.\n"
-                "Get a free key at: https://aistudio.google.com/"
+                "GROQ_API_KEY not found. Set it in your .env file.\n"
+                "Get a free key at: https://console.groq.com/"
             )
-        genai.configure(api_key=api_key)
-        self.model = genai.GenerativeModel("gemini-2.0-flash")
+        self.client = Groq(api_key=api_key)
+        self.model = "llama-3.3-70b-versatile"
 
     def generate(self, system_prompt: str, user_prompt: str) -> dict:
         """
-        Send prompt to Gemini and parse the structured JSON response.
+        Send prompt to Groq and parse the structured JSON response.
         Returns parsed dict with sql_queries, charts, insights, error.
         """
         try:
-            response = self.model.generate_content(
-                [
-                    {"role": "user", "parts": [{"text": system_prompt + "\n\nUser Question: " + user_prompt}]}
+            response = self.client.chat.completions.create(
+                model=self.model,
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt}
                 ],
-                generation_config=genai.types.GenerationConfig(
-                    temperature=0.1,  # Low temperature for accuracy
-                    max_output_tokens=4096,
-                ),
+                temperature=0.1,
+                max_completion_tokens=4096,
+                top_p=1,
+                stream=False,
             )
 
-            raw_text = response.text.strip()
+            raw_text = response.choices[0].message.content.strip()
 
             # Try to parse JSON from the response
             parsed = self._extract_json(raw_text)
@@ -123,12 +126,12 @@ class GeminiClient:
 
 
 # Singleton — initialized lazily
-_client: GeminiClient | None = None
+_client: GroqClient | None = None
 
 
-def get_gemini_client() -> GeminiClient:
-    """Get or create the Gemini client singleton."""
+def get_llm_client() -> GroqClient:
+    """Get or create the Groq client singleton."""
     global _client
     if _client is None:
-        _client = GeminiClient()
+        _client = GroqClient()
     return _client
