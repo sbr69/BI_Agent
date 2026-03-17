@@ -4,8 +4,12 @@ Query Engine — loads CSVs into SQLite in-memory and executes SQL safely.
 
 import sqlite3
 import os
+import re
 import pandas as pd
 from typing import Any
+
+# Table names must be alphanumeric/underscore only
+_SAFE_NAME_RE = re.compile(r"^[a-z][a-z0-9_]*$")
 
 
 class QueryEngine:
@@ -84,6 +88,11 @@ class QueryEngine:
             base = os.path.splitext(os.path.basename(filepath))[0]
             table_name = base.strip().lower().replace(" ", "_").replace("-", "_")
 
+        # Sanitize table name to prevent SQL injection
+        table_name = re.sub(r"[^a-z0-9_]", "", table_name)
+        if not table_name or not _SAFE_NAME_RE.match(table_name):
+            table_name = f"table_{abs(hash(filepath)) % 100000}"
+
         # Parse date columns
         for col in df.columns:
             if "date" in col.lower():
@@ -103,15 +112,27 @@ class QueryEngine:
         if not self.conn:
             raise RuntimeError("Query engine not initialized. Call initialize() first.")
 
-        # Safety: block write operations
+        # Safety: comprehensive SQL injection prevention
         sql_upper = sql.strip().upper()
+
+        # Reject compound statements (semicolons indicate multiple statements)
+        stripped = sql.strip().rstrip(";")
+        if ";" in stripped:
+            raise ValueError("Compound SQL statements are not allowed")
+
         blocked_keywords = [
             "INSERT", "UPDATE", "DELETE", "DROP", "ALTER", "CREATE",
-            "TRUNCATE", "REPLACE INTO", "ATTACH", "DETACH"
+            "TRUNCATE", "REPLACE", "ATTACH", "DETACH", "PRAGMA",
+            "REINDEX", "VACUUM", "SAVEPOINT", "RELEASE", "ROLLBACK",
+            "COMMIT", "BEGIN",
         ]
         for keyword in blocked_keywords:
-            if sql_upper.startswith(keyword):
-                raise ValueError(f"Write operations are not allowed: {keyword}")
+            if re.search(rf"\b{keyword}\b", sql_upper):
+                raise ValueError(f"Disallowed SQL keyword: {keyword}")
+
+        # Only allow queries starting with SELECT or WITH (for CTEs)
+        if not (sql_upper.startswith("SELECT") or sql_upper.startswith("WITH")):
+            raise ValueError("Only SELECT queries are allowed")
 
         try:
             cursor = self.conn.execute(sql)
@@ -132,8 +153,11 @@ class QueryEngine:
 
         df = self.tables[table_name]
 
-        # Get column types from SQLite
-        cursor = self.conn.execute(f"PRAGMA table_info({table_name})")
+        # Validate table name before using in SQL (defense-in-depth)
+        if not _SAFE_NAME_RE.match(table_name):
+            raise ValueError(f"Invalid table name: '{table_name}'")
+
+        cursor = self.conn.execute(f"PRAGMA table_info([{table_name}])")
         columns_info = []
         for row in cursor.fetchall():
             col_name = row[1]
@@ -153,8 +177,10 @@ class QueryEngine:
     def remove_table(self, table_name: str):
         """Remove a table from the engine."""
         if table_name in self.tables:
+            if not _SAFE_NAME_RE.match(table_name):
+                raise ValueError(f"Invalid table name: '{table_name}'")
             del self.tables[table_name]
-            self.conn.execute(f"DROP TABLE IF EXISTS {table_name}")
+            self.conn.execute(f"DROP TABLE IF EXISTS [{table_name}]")
 
 
 # Singleton instance
