@@ -100,6 +100,7 @@ class GroqClient:
         result = {
             "sql_queries": data.get("sql_queries", []),
             "charts": data.get("charts", []),
+            "kpis": data.get("kpis", []),
             "insights": data.get("insights", []),
             "error": data.get("error", None)
         }
@@ -120,6 +121,18 @@ class GroqClient:
                     "colorScheme": chart.get("colorScheme", "default")
                 })
         result["charts"] = validated_charts
+
+        # Validate KPIs
+        validated_kpis = []
+        for kpi in result["kpis"]:
+            if isinstance(kpi, dict) and kpi.get("label") and kpi.get("value"):
+                validated_kpis.append({
+                    "label": str(kpi["label"]),
+                    "value": str(kpi["value"]),
+                    "change": kpi.get("change"),
+                    "trend": kpi.get("trend", "neutral"),
+                })
+        result["kpis"] = validated_kpis
 
         # Validate SQL queries
         valid_queries = []

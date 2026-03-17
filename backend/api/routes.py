@@ -1,16 +1,25 @@
 """
-API Routes -- endpoints for querying, datasets, upload, and health.
+API Routes -- endpoints for querying, datasets, upload, export, pinning, and health.
 """
 
+import csv
+import io
 import os
 import re
 import time
-from fastapi import APIRouter, UploadFile, File, Form, HTTPException
+import uuid
+import json
+from collections import defaultdict
+from datetime import datetime
+from fastapi import APIRouter, UploadFile, File, Form, HTTPException, Request
+from fastapi.responses import StreamingResponse
 
 from api.models import (
-    QueryRequest, QueryResponse, ChartConfig,
+    QueryRequest, QueryResponse, ChartConfig, KPIConfig,
     DatasetsResponse, DatasetInfo, ColumnInfo,
-    UploadResponse, HealthResponse
+    UploadResponse, HealthResponse,
+    PinRequest, PinnedDashboard,
+    ScheduleRequest, ScheduledReport,
 )
 from core.query_engine import query_engine
 from core.schema import get_schema_description, get_datasets_info, invalidate_schema_cache
@@ -22,11 +31,37 @@ router = APIRouter(prefix="/api")
 # In-memory session store for conversation context
 _sessions: dict[str, list[dict]] = {}
 
+# In-memory pinned dashboards store
+_pinned_dashboards: dict[str, dict] = {}
+
+# In-memory scheduled reports store
+_scheduled_reports: dict[str, dict] = {}
+
 # Constraints
 MAX_SESSIONS = 1000
 MAX_UPLOAD_SIZE = 50 * 1024 * 1024  # 50 MB
 _SESSION_ID_RE = re.compile(r"^[a-zA-Z0-9_-]{1,64}$")
 _SAFE_FILENAME_RE = re.compile(r"^[a-zA-Z0-9_\- ]+\.csv$")
+
+# Simple in-memory rate limiter: { ip: [timestamps] }
+_rate_limits: dict[str, list[float]] = defaultdict(list)
+RATE_LIMIT_MAX = 30  # max requests per window
+RATE_LIMIT_WINDOW = 60  # seconds
+
+
+def _check_rate_limit(request: Request):
+    """Check if the request exceeds the rate limit."""
+    ip = request.client.host if request.client else "unknown"
+    now = time.time()
+    window_start = now - RATE_LIMIT_WINDOW
+    # Clean old entries
+    _rate_limits[ip] = [t for t in _rate_limits[ip] if t > window_start]
+    if len(_rate_limits[ip]) >= RATE_LIMIT_MAX:
+        raise HTTPException(
+            status_code=429,
+            detail=f"Rate limit exceeded. Max {RATE_LIMIT_MAX} queries per minute."
+        )
+    _rate_limits[ip].append(now)
 
 
 def _validate_session_id(session_id: str) -> str:
@@ -75,8 +110,9 @@ def list_datasets():
 
 
 @router.post("/query", response_model=QueryResponse)
-def process_query(request: QueryRequest):
+def process_query(request: QueryRequest, req: Request):
     """Process a natural language query and return chart data."""
+    _check_rate_limit(req)
     start_time = time.time()
 
     # Determine which dataset to use
@@ -98,11 +134,23 @@ def process_query(request: QueryRequest):
     session_id = _validate_session_id(request.session_id) if request.session_id else "default"
     history = _sessions.get(session_id, [])
 
-    # Build prompt
+    # Build prompt with optional date range filter context
+    date_filter_context = ""
+    if request.date_from or request.date_to:
+        date_filter_context = "\n\n## Active Date Filter\n"
+        if request.date_from and request.date_to:
+            date_filter_context += f"The user has set a global date filter: FROM '{request.date_from}' TO '{request.date_to}'.\n"
+        elif request.date_from:
+            date_filter_context += f"The user has set a global date filter: FROM '{request.date_from}' onwards.\n"
+        else:
+            date_filter_context += f"The user has set a global date filter: UP TO '{request.date_to}'.\n"
+        date_filter_context += "You MUST add a WHERE clause (or AND condition) to ALL SQL queries to filter by the date column in this range.\n"
+        date_filter_context += "Use the date column from the schema (e.g., order_date, date, etc.).\n"
+
     if history:
-        system_prompt = get_followup_prompt(schema, history)
+        system_prompt = get_followup_prompt(schema, history) + date_filter_context
     else:
-        system_prompt = get_system_prompt(schema)
+        system_prompt = get_system_prompt(schema) + date_filter_context
 
     # Call LLM
     try:
@@ -150,6 +198,17 @@ def process_query(request: QueryRequest):
                 colorScheme=chart_config.get("colorScheme", "default")
             ))
 
+    # Extract KPIs from LLM response
+    kpis = []
+    for kpi_data in llm_response.get("kpis", []):
+        if isinstance(kpi_data, dict) and kpi_data.get("label") and kpi_data.get("value"):
+            kpis.append(KPIConfig(
+                label=kpi_data["label"],
+                value=str(kpi_data["value"]),
+                change=kpi_data.get("change"),
+                trend=kpi_data.get("trend", "neutral")
+            ))
+
     # Save to session history
     if session_id not in _sessions and len(_sessions) >= MAX_SESSIONS:
         oldest = next(iter(_sessions))
@@ -169,16 +228,175 @@ def process_query(request: QueryRequest):
 
     return QueryResponse(
         charts=charts,
+        kpis=kpis,
         insights=llm_response.get("insights", []),
         metadata={
             "query_time_ms": elapsed_ms,
             "dataset": target_table,
             "queries_executed": len(query_results),
             "rows_returned": sum(len(r) for r in query_results),
-            "session_id": session_id
+            "session_id": session_id,
+            "sql_queries": llm_response.get("sql_queries", []),
         }
     )
 
+
+# ---------------------------------------------------------------------------
+# Export endpoints
+# ---------------------------------------------------------------------------
+
+@router.post("/export/csv")
+def export_csv(req: Request):
+    """Export chart data as CSV."""
+    _check_rate_limit(req)
+    body = req.scope.get("body")
+    # FastAPI sync handler: read body manually not needed with proper model
+    # Use a simple dict for flexibility
+    return _export_csv_handler(req)
+
+
+def _export_csv_handler(req: Request):
+    """Actual handler extracted for reuse."""
+    pass  # replaced by the actual endpoint below
+
+
+@router.post("/export/chart-csv")
+def export_chart_csv(payload: dict, req: Request):
+    """Export chart data as a downloadable CSV file."""
+    _check_rate_limit(req)
+    data = payload.get("data", [])
+    title = payload.get("title", "export")
+
+    if not data:
+        raise HTTPException(status_code=400, detail="No data to export")
+
+    output = io.StringIO()
+    if data:
+        writer = csv.DictWriter(output, fieldnames=data[0].keys())
+        writer.writeheader()
+        writer.writerows(data)
+
+    output.seek(0)
+    safe_title = re.sub(r"[^a-zA-Z0-9_\- ]", "", title)[:50]
+    filename = f"{safe_title}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
+
+    return StreamingResponse(
+        io.BytesIO(output.getvalue().encode("utf-8")),
+        media_type="text/csv",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'}
+    )
+
+
+# ---------------------------------------------------------------------------
+# Dashboard Pinning / Saving
+# ---------------------------------------------------------------------------
+
+@router.post("/pins")
+def pin_dashboard(payload: PinRequest):
+    """Save/pin a dashboard tile for persistence."""
+    pin_id = str(uuid.uuid4())[:8]
+    now = datetime.now().isoformat()
+    pinned = {
+        "id": pin_id,
+        "title": payload.title,
+        "query_prompt": payload.query_prompt,
+        "charts": payload.charts,
+        "kpis": payload.kpis,
+        "insights": payload.insights,
+        "dataset": payload.dataset,
+        "created_at": now,
+    }
+    _pinned_dashboards[pin_id] = pinned
+    return pinned
+
+
+@router.get("/pins")
+def list_pins():
+    """List all pinned dashboards."""
+    return {"pins": list(_pinned_dashboards.values())}
+
+
+@router.delete("/pins/{pin_id}")
+def delete_pin(pin_id: str):
+    """Remove a pinned dashboard."""
+    if pin_id in _pinned_dashboards:
+        del _pinned_dashboards[pin_id]
+        return {"message": "Pin removed"}
+    raise HTTPException(status_code=404, detail="Pin not found")
+
+
+# ---------------------------------------------------------------------------
+# Scheduled Reports
+# ---------------------------------------------------------------------------
+
+@router.post("/schedules")
+def create_schedule(payload: ScheduleRequest):
+    """Create a scheduled report."""
+    schedule_id = str(uuid.uuid4())[:8]
+    now = datetime.now().isoformat()
+    schedule = {
+        "id": schedule_id,
+        "title": payload.title,
+        "prompt": payload.prompt,
+        "dataset": payload.dataset,
+        "cron": payload.cron,
+        "email": payload.email,
+        "created_at": now,
+        "last_run": None,
+        "active": True,
+    }
+    _scheduled_reports[schedule_id] = schedule
+    return schedule
+
+
+@router.get("/schedules")
+def list_schedules():
+    """List all scheduled reports."""
+    return {"schedules": list(_scheduled_reports.values())}
+
+
+@router.delete("/schedules/{schedule_id}")
+def delete_schedule(schedule_id: str):
+    """Remove a scheduled report."""
+    if schedule_id in _scheduled_reports:
+        del _scheduled_reports[schedule_id]
+        return {"message": "Schedule removed"}
+    raise HTTPException(status_code=404, detail="Schedule not found")
+
+
+@router.post("/schedules/{schedule_id}/toggle")
+def toggle_schedule(schedule_id: str):
+    """Toggle a scheduled report active/inactive."""
+    if schedule_id in _scheduled_reports:
+        _scheduled_reports[schedule_id]["active"] = not _scheduled_reports[schedule_id]["active"]
+        return _scheduled_reports[schedule_id]
+    raise HTTPException(status_code=404, detail="Schedule not found")
+
+
+# ---------------------------------------------------------------------------
+# Session management
+# ---------------------------------------------------------------------------
+
+@router.get("/session/{session_id}")
+def get_session(session_id: str):
+    """Get conversation history for a session."""
+    session_id = _validate_session_id(session_id)
+    history = _sessions.get(session_id, [])
+    return {"session_id": session_id, "history": history}
+
+
+@router.delete("/session/{session_id}")
+def clear_session(session_id: str):
+    """Clear conversation history for a session."""
+    session_id = _validate_session_id(session_id)
+    if session_id in _sessions:
+        del _sessions[session_id]
+    return {"message": "Session cleared"}
+
+
+# ---------------------------------------------------------------------------
+# Upload & Preview
+# ---------------------------------------------------------------------------
 
 @router.post("/upload", response_model=UploadResponse)
 def upload_csv(
@@ -237,15 +455,6 @@ def upload_csv(
         if os.path.exists(filepath):
             os.remove(filepath)
         raise HTTPException(status_code=400, detail=f"Failed to load CSV: {str(e)}")
-
-
-@router.delete("/session/{session_id}")
-def clear_session(session_id: str):
-    """Clear conversation history for a session."""
-    session_id = _validate_session_id(session_id)
-    if session_id in _sessions:
-        del _sessions[session_id]
-    return {"message": "Session cleared"}
 
 
 @router.get("/preview/{dataset}")

@@ -17,7 +17,8 @@ def get_system_prompt(schema: str) -> str:
 When the user asks a business question:
 1. Generate one or more SQL queries to retrieve the needed data
 2. Choose the most appropriate chart types for visualization
-3. Provide key business insights from the data
+3. Generate KPI summary cards for key metrics (totals, averages, counts)
+4. Provide key business insights from the data
 
 ## Response Format
 You MUST respond with ONLY valid JSON (no markdown, no backticks, no explanation outside JSON). Use this exact structure:
@@ -41,12 +42,28 @@ You MUST respond with ONLY valid JSON (no markdown, no backticks, no explanation
       "colorScheme": "default"
     }}
   ],
+  "kpis": [
+    {{
+      "label": "Total Revenue",
+      "value": "$32.5M",
+      "change": "+12.3%",
+      "trend": "up"
+    }}
+  ],
   "insights": [
     "Key insight 1 derived from the data",
     "Key insight 2 derived from the data"
   ],
   "error": null
 }}
+
+## KPI Rules
+- Generate 2-4 KPI cards that summarize the key numbers relevant to the user's question
+- "value" should be a formatted string (e.g., "$32.5M", "1,234", "85.3%")
+- "change" is optional — include a percentage change if there's a comparison context
+- "trend" is "up" (positive), "down" (negative), or "neutral"
+- KPIs should provide quick headline numbers BEFORE the user looks at charts
+- Always include at least one KPI showing the main metric the user asked about
 
 ## Chart Selection Rules
 - **Time-series data** (dates on x-axis) -> use "line" or "area"
@@ -60,6 +77,7 @@ You MUST respond with ONLY valid JSON (no markdown, no backticks, no explanation
 ## SQL Rules
 - Write standard **PostgreSQL**-compatible SQL only
 - Use only columns that exist in the schema above
+- Always add LIMIT 10000 to queries that might return large result sets
 - For date operations use PostgreSQL functions:
   - EXTRACT(MONTH FROM order_date)
   - EXTRACT(YEAR FROM order_date)
