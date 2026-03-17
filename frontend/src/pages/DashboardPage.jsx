@@ -861,122 +861,9 @@ export default function DashboardPage() {
         )}
       </div>
 
-      {/* ══════════════════════════════════════════════════════════
-          7. ALERTS + SYSTEM HEALTH
-          ══════════════════════════════════════════════════════════ */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {/* 7a. Notifications & Alerts Feed */}
-        <div className="rounded-xl border border-border bg-white p-5">
-          <SectionHeader icon={Bell} title="Notifications & Alerts" subtitle="AI-detected anomalies and system events" iconColor="text-orange-500"
-            action={<span className="text-[10px] bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full font-semibold">{alerts.length}</span>} />
-          <div className="space-y-2.5 max-h-72 overflow-y-auto pr-1">
-            {alerts.map((a, i) => {
-              const c = alertColors[a.type];
-              return (
-                <div key={i} className={`flex items-start gap-3 p-3 rounded-xl ${c.bg} border ${c.border}`}>
-                  <div className="mt-0.5 shrink-0"><a.icon size={15} className={c.icon} /></div>
-                  <div className="flex-1 min-w-0">
-                    <p className={`text-xs font-semibold ${c.text}`}>{a.title}</p>
-                    <p className={`text-xs ${c.sub} mt-0.5 leading-relaxed`}>{a.message}</p>
-                    <p className={`text-[10px] ${c.time} mt-1 font-medium opacity-70`}>{a.time}</p>
-                  </div>
-                </div>
-              );
-            })}
-            {alerts.length === 0 && (
-              <div className="text-center py-6 text-xs text-text-muted">
-                <CheckCircle2 size={20} className="mx-auto mb-2 text-green-400" />
-                All systems healthy — nothing to report
-              </div>
-            )}
-          </div>
-        </div>
 
-        {/* 7b. System & Data Health Panel */}
-        <div className="rounded-xl border border-border bg-white p-5">
-          <SectionHeader icon={Server} title="System Health" subtitle="Platform status & infrastructure metrics" iconColor="text-cyan-500"
-            action={<button onClick={() => checkHealth().then(setHealthData)} className="p-1 text-text-muted hover:text-primary transition-colors"><RefreshCw size={13} /></button>} />
-          <div className="space-y-4">
-            {/* Backend connection */}
-            <div className="flex items-center justify-between p-3 rounded-xl bg-surface-light border border-border">
-              <div className="flex items-center gap-3">
-                <Globe size={16} className={backendConnected ? "text-green-500" : "text-red-500"} />
-                <div>
-                  <p className="text-xs font-medium text-text-primary">Backend API</p>
-                  <p className="text-[10px] text-text-muted">FastAPI + Supabase PostgreSQL</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <span className={`w-2 h-2 rounded-full ${backendConnected ? "bg-green-500 shadow-[0_0_6px_rgba(34,197,94,0.5)]" : "bg-red-500"}`} />
-                <span className={`text-xs font-semibold ${backendConnected ? "text-green-600" : "text-red-600"}`}>
-                  {backendConnected ? "ONLINE" : "OFFLINE"}
-                </span>
-              </div>
-            </div>
 
-            {/* Health metrics */}
-            {healthData && (
-              <div className="grid grid-cols-2 gap-3">
-                <div className="p-3 rounded-xl bg-surface-light border border-border">
-                  <p className="text-[10px] text-text-muted font-medium mb-1">Tables Loaded</p>
-                  <p className="text-lg font-bold text-text-primary">{healthData.tables_loaded}</p>
-                </div>
-                <div className="p-3 rounded-xl bg-surface-light border border-border">
-                  <p className="text-[10px] text-text-muted font-medium mb-1">Total Rows (DB)</p>
-                  <p className="text-lg font-bold text-text-primary">{(healthData.total_rows || 0).toLocaleString()}</p>
-                </div>
-              </div>
-            )}
 
-            {/* Session info */}
-            <div className="flex items-center justify-between p-3 rounded-xl bg-surface-light border border-border">
-              <div className="flex items-center gap-3">
-                <Cpu size={16} className="text-text-muted" />
-                <div>
-                  <p className="text-xs font-medium text-text-primary">Active Session</p>
-                  <p className="text-[10px] text-text-muted font-mono">{sessionId?.slice(0, 20)}...</p>
-                </div>
-              </div>
-              <span className="text-[10px] bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full font-semibold">
-                {queryHistory.length} queries
-              </span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* ══════════════════════════════════════════════════════════
-          8. SCHEDULED REPORTS
-          ══════════════════════════════════════════════════════════ */}
-      <div className="rounded-xl border border-border bg-white p-5" id="scheduled-reports">
-        <SectionHeader icon={Calendar} title="Scheduled Reports" subtitle={`${schedules.length} report(s) configured`} iconColor="text-teal-500"
-          action={<button onClick={() => navigate("/settings")} className="text-xs text-primary hover:underline font-medium flex items-center gap-1">
-            Manage <ExternalLink size={11} />
-          </button>} />
-        {schedules.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-            {schedules.map((s) => (
-              <div key={s.id} className={`p-3.5 rounded-xl border transition-all ${s.active ? "border-teal-200 bg-teal-50/30" : "border-border bg-surface-light opacity-60"}`}>
-                <div className="flex items-center justify-between mb-2">
-                  <p className="text-xs font-semibold text-text-primary truncate mr-2">{s.title}</p>
-                  {s.active ? <PlayCircle size={14} className="text-teal-500 shrink-0" /> : <PauseCircle size={14} className="text-text-muted shrink-0" />}
-                </div>
-                <p className="text-[10px] text-text-muted truncate">{s.prompt}</p>
-                <div className="flex items-center gap-2 mt-2 text-[10px] text-text-muted">
-                  <span className="flex items-center gap-1"><Clock size={10} /> {s.cron}</span>
-                  {s.dataset && <span className="px-1.5 py-0.5 bg-white rounded text-[9px] border border-border">{s.dataset}</span>}
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="text-center py-8">
-            <Calendar size={24} className="mx-auto mb-2 text-text-muted" />
-            <p className="text-xs text-text-muted mb-2">No scheduled reports yet</p>
-            <p className="text-[10px] text-text-muted">Automate recurring analyses to run on a schedule</p>
-          </div>
-        )}
-      </div>
 
       {/* ══════════════════════════════════════════════════════════
           9. LAST QUERY RESULT PREVIEW
@@ -1023,116 +910,54 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* ══════════════════════════════════════════════════════════
-          10. AI-POWERED SUGGESTIONS
-          ══════════════════════════════════════════════════════════ */}
-      <div className="rounded-xl border border-border bg-white p-5" id="ai-suggestions">
-        <SectionHeader icon={Lightbulb} title="AI-Powered Suggestions" subtitle="Click any suggestion to run an instant query" iconColor="text-amber-500" />
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-          {suggestions.map((s, i) => (
-            <button key={i}
-              onClick={() => navigate("/query", { state: { prefill: s.text } })}
-              className="flex items-center gap-3 p-3.5 rounded-xl border border-border bg-surface-light/50 hover:bg-white hover:border-primary/20 hover:shadow-sm text-left transition-all group">
-              <span className="text-xl shrink-0">{s.emoji}</span>
-              <span className="text-xs text-text-secondary group-hover:text-text-primary transition-colors font-medium">{s.text}</span>
-              <ChevronRight size={14} className="ml-auto text-text-muted group-hover:text-primary shrink-0 transition-colors" />
-            </button>
-          ))}
-        </div>
-      </div>
+
 
       {/* ══════════════════════════════════════════════════════════
-          11. ACTIVITY FEED + PINNED DASHBOARDS
+          11. PINNED DASHBOARDS
           ══════════════════════════════════════════════════════════ */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-
-        {/* 11a. Recent Activity / History Feed */}
-        <div className="rounded-xl border border-border bg-white p-5">
-          <SectionHeader icon={Clock} title="Recent Activity" subtitle="Your latest queries and actions" iconColor="text-violet-500"
-            action={<button onClick={() => navigate("/history")} className="text-xs text-primary hover:underline font-medium flex items-center gap-1">
-              View All <ExternalLink size={11} />
-            </button>} />
-          {filteredHistory.length > 0 ? (
-            <div className="space-y-2">
-              {filteredHistory.slice(0, showAllActivity ? 15 : 5).map((q, i) => (
-                <div key={i}
-                  onClick={() => navigate("/query", { state: { prefill: q.prompt } })}
-                  className="flex items-start gap-3 p-3 rounded-xl hover:bg-surface-light transition-colors cursor-pointer group">
-                  <div className="w-7 h-7 rounded-lg bg-primary-50 flex items-center justify-center shrink-0 mt-0.5">
-                    <MessageSquareText size={13} className="text-primary" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-medium text-text-primary truncate group-hover:text-primary transition-colors">{q.prompt}</p>
-                    <div className="flex items-center gap-2 mt-1 text-[10px] text-text-muted">
-                      <span className="flex items-center gap-0.5"><Clock size={10} /> {new Date(q.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
-                      {q.dataset && <span className="px-1.5 py-0.5 bg-surface-light rounded border border-border">{q.dataset}</span>}
-                      {q.result?.charts?.length > 0 && <span>{q.result.charts.length} chart(s)</span>}
-                    </div>
-                  </div>
-                  <ArrowUpRight size={14} className="text-text-muted group-hover:text-primary transition-colors shrink-0 mt-1" />
+      <div className="rounded-xl border border-border bg-white p-5">
+        <SectionHeader icon={Pin} title="Pinned Dashboards" subtitle={`${filteredPins.length} saved view${filteredPins.length !== 1 ? "s" : ""}`} iconColor="text-pink-500" />
+        {filteredPins.length > 0 ? (
+          <div className="space-y-2.5">
+            {filteredPins.slice(0, showAllPins ? 20 : 4).map((p) => (
+              <div key={p.id} className="flex items-start gap-3 p-3 rounded-xl border border-border hover:border-primary/20 hover:shadow-sm transition-all group">
+                <div className="w-8 h-8 rounded-lg bg-pink-50 flex items-center justify-center shrink-0">
+                  <Bookmark size={14} className="text-pink-500" />
                 </div>
-              ))}
-              {filteredHistory.length > 5 && (
-                <button onClick={() => setShowAllActivity(!showAllActivity)}
-                  className="w-full text-center text-xs text-primary hover:underline font-medium py-2">
-                  {showAllActivity ? "Show less" : `Show ${filteredHistory.length - 5} more`}
-                </button>
-              )}
-            </div>
-          ) : (
-            <div className="text-center py-8">
-              <Clock size={24} className="mx-auto mb-2 text-text-muted" />
-              <p className="text-xs text-text-muted">No queries yet</p>
-              <button onClick={() => navigate("/query")} className="mt-2 text-xs text-primary hover:underline font-medium">Start querying →</button>
-            </div>
-          )}
-        </div>
-
-        {/* 11b. Pinned / Saved Dashboards */}
-        <div className="rounded-xl border border-border bg-white p-5">
-          <SectionHeader icon={Pin} title="Pinned Dashboards" subtitle={`${filteredPins.length} saved view${filteredPins.length !== 1 ? "s" : ""}`} iconColor="text-pink-500" />
-          {filteredPins.length > 0 ? (
-            <div className="space-y-2.5">
-              {filteredPins.slice(0, showAllPins ? 20 : 4).map((p) => (
-                <div key={p.id} className="flex items-start gap-3 p-3 rounded-xl border border-border hover:border-primary/20 hover:shadow-sm transition-all group">
-                  <div className="w-8 h-8 rounded-lg bg-pink-50 flex items-center justify-center shrink-0">
-                    <Bookmark size={14} className="text-pink-500" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-semibold text-text-primary truncate">{p.title || p.query_prompt}</p>
-                    <div className="flex items-center gap-2 mt-1 text-[10px] text-text-muted">
-                      {p.charts?.length > 0 && <span>{p.charts.length} chart(s)</span>}
-                      {p.dataset && <span className="px-1.5 py-0.5 bg-surface-light rounded border border-border">{p.dataset}</span>}
-                      {p.created_at && <span>{new Date(p.created_at).toLocaleDateString()}</span>}
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-                    <button onClick={(e) => { e.stopPropagation(); navigate("/query", { state: { prefill: p.query_prompt } }); }}
-                      className="p-1.5 rounded-lg hover:bg-surface-light text-text-muted hover:text-primary transition-colors" title="Re-run">
-                      <PlayCircle size={13} />
-                    </button>
-                    <button onClick={(e) => { e.stopPropagation(); removePin(p.id); }}
-                      className="p-1.5 rounded-lg hover:bg-red-50 text-text-muted hover:text-red-500 transition-colors" title="Remove">
-                      <Trash2 size={13} />
-                    </button>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-semibold text-text-primary truncate">{p.title || p.query_prompt}</p>
+                  <div className="flex items-center gap-2 mt-1 text-[10px] text-text-muted">
+                    {p.charts?.length > 0 && <span>{p.charts.length} chart(s)</span>}
+                    {p.dataset && <span className="px-1.5 py-0.5 bg-surface-light rounded border border-border">{p.dataset}</span>}
+                    {p.created_at && <span>{new Date(p.created_at).toLocaleDateString()}</span>}
                   </div>
                 </div>
-              ))}
-              {filteredPins.length > 4 && (
-                <button onClick={() => setShowAllPins(!showAllPins)}
-                  className="w-full text-center text-xs text-primary hover:underline font-medium py-2">
-                  {showAllPins ? "Show less" : `Show ${filteredPins.length - 4} more`}
-                </button>
-              )}
-            </div>
-          ) : (
-            <div className="text-center py-8">
-              <Pin size={24} className="mx-auto mb-2 text-text-muted" />
-              <p className="text-xs text-text-muted">No pinned dashboards</p>
-              <p className="text-[10px] text-text-muted mt-1">Pin results from AI Query to save them here</p>
-            </div>
-          )}
-        </div>
+                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                  <button onClick={(e) => { e.stopPropagation(); navigate("/query", { state: { prefill: p.query_prompt } }); }}
+                    className="p-1.5 rounded-lg hover:bg-surface-light text-text-muted hover:text-primary transition-colors" title="Re-run">
+                    <PlayCircle size={13} />
+                  </button>
+                  <button onClick={(e) => { e.stopPropagation(); removePin(p.id); }}
+                    className="p-1.5 rounded-lg hover:bg-red-50 text-text-muted hover:text-red-500 transition-colors" title="Remove">
+                    <Trash2 size={13} />
+                  </button>
+                </div>
+              </div>
+            ))}
+            {filteredPins.length > 4 && (
+              <button onClick={() => setShowAllPins(!showAllPins)}
+                className="w-full text-center text-xs text-primary hover:underline font-medium py-2">
+                {showAllPins ? "Show less" : `Show ${filteredPins.length - 4} more`}
+              </button>
+            )}
+          </div>
+        ) : (
+          <div className="text-center py-8">
+            <Pin size={24} className="mx-auto mb-2 text-text-muted" />
+            <p className="text-xs text-text-muted">No pinned dashboards</p>
+            <p className="text-[10px] text-text-muted mt-1">Pin results from AI Query to save them here</p>
+          </div>
+        )}
       </div>
 
       {/* ══════════════════════════════════════════════════════════
