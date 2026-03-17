@@ -1,4 +1,4 @@
-import { NavLink, useLocation } from "react-router-dom";
+import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import {
   LayoutDashboard,
@@ -12,11 +12,12 @@ import {
   BarChart3,
   UserCircle2,
   X,
+  LogOut,
 } from "lucide-react";
 import { AVATAR_COLORS, getInitials, loadProfile } from "../../utils/constants";
 
 const NAV_ITEMS = [
-  { to: "/", icon: LayoutDashboard, label: "Dashboard" },
+  { to: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
   { to: "/query", icon: MessageSquareText, label: "AI Query" },
   { to: "/explorer", icon: Database, label: "Data Explorer" },
   { to: "/history", icon: History, label: "History" },
@@ -27,6 +28,7 @@ const NAV_ITEMS = [
 export default function Sidebar({ collapsed, onToggle, isMobile, onClose }) {
   const [profile, setProfile] = useState(loadProfile);
   const location = useLocation();
+  const navigate = useNavigate();
 
   // Close mobile sidebar on route change
   useEffect(() => {
@@ -43,6 +45,13 @@ export default function Sidebar({ collapsed, onToggle, isMobile, onClose }) {
       window.removeEventListener("storage", onUpdate);
     };
   }, []);
+
+  const handleLogout = () => {
+    // Clear user profile from localStorage
+    localStorage.removeItem("bi_agent_user_profile");
+    // Navigate to landing page
+    navigate("/landing");
+  };
 
   const colorIdx = profile?.avatarColor ?? 0;
   const color = AVATAR_COLORS[colorIdx] || AVATAR_COLORS[0];
@@ -93,7 +102,6 @@ export default function Sidebar({ collapsed, onToggle, isMobile, onClose }) {
             <NavLink
               key={to}
               to={to}
-              end={to === "/"}
               className={({ isActive }) =>
                 `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-150 group ${
                   isActive
@@ -122,7 +130,7 @@ export default function Sidebar({ collapsed, onToggle, isMobile, onClose }) {
         </nav>
 
         {/* ── User Profile Section ── */}
-        <div className="border-t border-border px-3 py-3">
+        <div className="border-t border-border px-3 py-3 space-y-2">
           <NavLink
             to="/profile"
             className={({ isActive }) =>
@@ -162,6 +170,16 @@ export default function Sidebar({ collapsed, onToggle, isMobile, onClose }) {
               </>
             )}
           </NavLink>
+
+          {/* Logout Button */}
+          <button
+            onClick={handleLogout}
+            className="w-full flex items-center gap-3 px-2 py-2 rounded-lg text-text-secondary hover:text-error hover:bg-red-50 transition-all duration-150"
+            title={!isExpanded ? "Logout" : undefined}
+          >
+            <LogOut size={18} className="shrink-0" />
+            {isExpanded && <span className="text-xs font-medium">Logout</span>}
+          </button>
         </div>
 
         {/* Collapse Toggle — hidden on mobile */}

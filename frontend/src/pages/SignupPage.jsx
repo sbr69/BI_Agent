@@ -78,7 +78,7 @@ export default function SignupPage() {
       );
     } catch { /* ignore */ }
 
-    navigate("/");
+    navigate("/dashboard");
   }
 
   const passwordStrength = PASSWORD_RULES.filter((r) =>

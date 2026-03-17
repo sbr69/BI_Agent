@@ -50,7 +50,7 @@ export default function LoginPage() {
       }
     } catch { /* ignore */ }
 
-    navigate("/");
+    navigate("/dashboard");
   }
 
   return (

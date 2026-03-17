@@ -1,5 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Layout from "./components/layout/Layout";
+import ProtectedRoute from "./components/ProtectedRoute";
+import RootRedirect from "./components/RootRedirect";
 import DashboardPage from "./pages/DashboardPage";
 import QueryPage from "./pages/QueryPage";
 import ExplorerPage from "./pages/ExplorerPage";
@@ -15,21 +17,30 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
+        {/* Root path: redirect based on authentication status */}
+        <Route path="/" element={<RootRedirect />} />
+
         {/* Public pages — no sidebar/topbar */}
         <Route path="/landing" element={<LandingPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/signup" element={<SignupPage />} />
 
-        {/* App pages — wrapped in sidebar + topbar layout */}
-        <Route element={<Layout />}>
-          <Route path="/" element={<DashboardPage />} />
+        {/* Protected app pages — wrapped in sidebar + topbar layout with auth check */}
+        <Route
+          element={
+            <ProtectedRoute>
+              <Layout />
+            </ProtectedRoute>
+          }
+        >
+          <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/query" element={<QueryPage />} />
           <Route path="/explorer" element={<ExplorerPage />} />
           <Route path="/history" element={<HistoryPage />} />
           <Route path="/upload" element={<UploadPage />} />
           <Route path="/settings" element={<SettingsPage />} />
           <Route path="/profile" element={<ProfilePage />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
+          <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Route>
       </Routes>
     </BrowserRouter>

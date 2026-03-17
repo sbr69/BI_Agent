@@ -1,12 +1,8 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  User,
+  Building2,
   Mail,
-  Phone,
-  AtSign,
-  Briefcase,
-  Calendar,
   Edit3,
   Save,
   X,
@@ -16,11 +12,11 @@ import {
   AlertCircle,
   Shield,
   Info,
+  Calendar,
 } from "lucide-react";
 import { AVATAR_COLORS, getInitials, loadProfile } from "../utils/constants";
 
 const PROFILE_KEY = "bi_agent_user_profile";
-const ROLES = ["Analyst", "Manager", "Developer", "Student", "Data Scientist", "Other"];
 
 function saveProfile(data) {
   try {
@@ -30,11 +26,7 @@ function saveProfile(data) {
 
 const DEFAULT_PROFILE = {
   name: "",
-  username: "",
   email: "",
-  phone: "",
-  bio: "",
-  role: "Analyst",
   avatarColor: 0,
   joinedAt: new Date().toISOString(),
 };
@@ -70,15 +62,10 @@ export default function ProfilePage() {
 
   function validate(d) {
     const e = {};
-    if (!d.name.trim()) e.name = "Full name is required.";
-    if (!d.username.trim()) e.username = "Username is required.";
-    else if (!/^[a-zA-Z0-9_]{3,20}$/.test(d.username))
-      e.username = "3–20 chars, letters, numbers, underscores only.";
+    if (!d.name.trim()) e.name = "Organization name is required.";
     if (!d.email.trim()) e.email = "Email is required.";
     else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(d.email))
       e.email = "Enter a valid email.";
-    if (d.phone && !/^[+\d\s\-()]{7,15}$/.test(d.phone))
-      e.phone = "Enter a valid phone number.";
     return e;
   }
 
@@ -112,9 +99,9 @@ export default function ProfilePage() {
       {/* ── Page Header ── */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-text-primary">My Profile</h1>
+          <h1 className="text-2xl font-bold text-text-primary">Organization Profile</h1>
           <p className="text-sm text-text-muted mt-0.5">
-            Manage your personal information and account settings
+            Manage your organization information and settings
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -190,7 +177,7 @@ export default function ProfilePage() {
             )}
           </div>
 
-          {/* Name + role */}
+          {/* Name + identity */}
           <div className="flex-1 min-w-0">
             {editing ? (
               <div className="space-y-3">
@@ -198,7 +185,7 @@ export default function ProfilePage() {
                   <input
                     value={draft.name}
                     onChange={(e) => handleChange("name", e.target.value)}
-                    placeholder="Full name"
+                    placeholder="Organization name"
                     className={`w-full text-lg font-semibold px-3 py-2 border rounded-lg bg-white text-text-primary placeholder-text-muted focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all ${
                       errors.name ? "border-error" : "border-border"
                     }`}
@@ -209,65 +196,36 @@ export default function ProfilePage() {
                     </p>
                   )}
                 </div>
-                <select
-                  value={draft.role}
-                  onChange={(e) => handleChange("role", e.target.value)}
-                  className="px-3 py-1.5 border border-border rounded-lg bg-white text-sm text-text-secondary focus:outline-none focus:border-primary transition-all"
-                >
-                  {ROLES.map((r) => <option key={r}>{r}</option>)}
-                </select>
               </div>
             ) : (
               <>
                 <h2 className="text-xl font-bold text-text-primary truncate">
-                  {profile.name || <span className="text-text-muted italic">No name set</span>}
+                  {profile.name || <span className="text-text-muted italic">No organization name set</span>}
                 </h2>
-                <div className="flex items-center gap-2 mt-1 flex-wrap">
-                  <span className="px-2.5 py-0.5 rounded-full bg-primary-50 text-primary text-xs font-semibold border border-primary-200">
-                    {profile.role || "Analyst"}
-                  </span>
-                  {profile.username && (
-                    <span className="text-sm text-text-muted">@{profile.username}</span>
-                  )}
-                </div>
-                <p className="mt-2 text-sm text-text-secondary">
-                  {profile.bio || <span className="italic text-text-muted">No bio set</span>}
-                </p>
               </>
             )}
           </div>
         </div>
       </div>
 
-      {/* ── Personal Information ── */}
+      {/* ── Organization Information ── */}
       <div className="card overflow-hidden">
         <div className="flex items-center gap-2.5 px-5 py-3 border-b border-border bg-surface-light">
           <div className="w-7 h-7 rounded-lg bg-primary-50 flex items-center justify-center">
-            <User size={14} className="text-primary" />
+            <Building2 size={14} className="text-primary" />
           </div>
-          <h3 className="text-sm font-semibold text-text-primary">Personal Information</h3>
+          <h3 className="text-sm font-semibold text-text-primary">Organization Information</h3>
         </div>
         <div className="p-5 grid grid-cols-1 sm:grid-cols-2 gap-5">
-          {/* Full Name */}
+          {/* Organization Name */}
           <Field
-            label="Full Name"
-            icon={User}
+            label="Organization Name"
+            icon={Building2}
             editing={editing}
             value={editing ? draft.name : profile.name}
             onChange={(v) => handleChange("name", v)}
-            placeholder="Jane Smith"
+            placeholder="Your Organization"
             error={errors.name}
-          />
-          {/* Username */}
-          <Field
-            label="Username"
-            icon={AtSign}
-            editing={editing}
-            value={editing ? draft.username : profile.username}
-            onChange={(v) => handleChange("username", v)}
-            placeholder="jane_smith"
-            error={errors.username}
-            prefix="@"
           />
           {/* Email */}
           <Field
@@ -276,38 +234,10 @@ export default function ProfilePage() {
             editing={editing}
             value={editing ? draft.email : profile.email}
             onChange={(v) => handleChange("email", v)}
-            placeholder="jane@example.com"
+            placeholder="org@example.com"
             type="email"
             error={errors.email}
           />
-          {/* Phone */}
-          <Field
-            label="Phone Number"
-            icon={Phone}
-            editing={editing}
-            value={editing ? draft.phone : profile.phone}
-            onChange={(v) => handleChange("phone", v)}
-            placeholder="+1 555 000 0000"
-            type="tel"
-            error={errors.phone}
-          />
-          {/* Bio — full width */}
-          <div className="sm:col-span-2">
-            <label className="block text-xs font-medium text-text-secondary mb-1.5">Bio</label>
-            {editing ? (
-              <textarea
-                value={draft.bio}
-                onChange={(e) => handleChange("bio", e.target.value)}
-                placeholder="Tell us a little about yourself…"
-                rows={3}
-                className="w-full px-3 py-2.5 text-sm border border-border rounded-lg bg-white text-text-primary placeholder-text-muted focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all resize-none"
-              />
-            ) : (
-              <p className="text-sm text-text-primary min-h-[40px]">
-                {profile.bio || <span className="italic text-text-muted">No bio set</span>}
-              </p>
-            )}
-          </div>
         </div>
       </div>
 
@@ -319,25 +249,7 @@ export default function ProfilePage() {
           </div>
           <h3 className="text-sm font-semibold text-text-primary">Account Information</h3>
         </div>
-        <div className="p-5 grid grid-cols-1 sm:grid-cols-2 gap-5">
-          {/* Role */}
-          <div>
-            <label className="block text-xs font-medium text-text-secondary mb-1.5">Role</label>
-            {editing ? (
-              <select
-                value={draft.role}
-                onChange={(e) => handleChange("role", e.target.value)}
-                className="w-full px-3 py-2.5 text-sm border border-border rounded-lg bg-white text-text-primary focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all"
-              >
-                {ROLES.map((r) => <option key={r}>{r}</option>)}
-              </select>
-            ) : (
-              <div className="flex items-center gap-2">
-                <Briefcase size={14} className="text-text-muted shrink-0" />
-                <span className="text-sm text-text-primary">{profile.role || "Analyst"}</span>
-              </div>
-            )}
-          </div>
+        <div className="p-5">
           {/* Member since */}
           <div>
             <label className="block text-xs font-medium text-text-secondary mb-1.5">
