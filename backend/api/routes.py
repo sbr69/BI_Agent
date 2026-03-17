@@ -1,12 +1,10 @@
 """
-API Routes — endpoints for querying, datasets, upload, and health.
+API Routes -- endpoints for querying, datasets, upload, and health.
 """
 
 import os
 import re
 import time
-import shutil
-import uuid
 from fastapi import APIRouter, UploadFile, File, Form, HTTPException
 from typing import Optional
 
@@ -43,7 +41,7 @@ def _validate_session_id(session_id: str) -> str:
 async def health_check():
     """Health check endpoint."""
     tables = query_engine.get_table_names()
-    total_rows = sum(len(query_engine.tables[t]) for t in tables)
+    total_rows = sum(query_engine.get_row_count(t) for t in tables)
     return HealthResponse(
         status="ok",
         tables_loaded=len(tables),
@@ -143,7 +141,7 @@ async def process_query(request: QueryRequest):
                 colorScheme=chart_config.get("colorScheme", "default")
             ))
 
-    # Save to session history (cap total sessions to prevent memory abuse)
+    # Save to session history
     if session_id not in _sessions and len(_sessions) >= MAX_SESSIONS:
         oldest = next(iter(_sessions))
         del _sessions[oldest]
@@ -188,7 +186,7 @@ async def upload_csv(
     if not _SAFE_FILENAME_RE.match(safe_filename):
         raise HTTPException(status_code=400, detail="Invalid filename. Use only letters, numbers, dashes, underscores, and spaces.")
 
-    # Validate file size by reading into memory (avoids writing oversized files to disk)
+    # Validate file size
     contents = await file.read()
     if len(contents) > MAX_UPLOAD_SIZE:
         raise HTTPException(status_code=413, detail=f"File too large. Maximum size is {MAX_UPLOAD_SIZE // (1024*1024)} MB")
@@ -209,7 +207,7 @@ async def upload_csv(
         with open(filepath, "wb") as f:
             f.write(contents)
 
-        # Load into query engine
+        # Load into PostgreSQL via query engine
         actual_table_name = query_engine.load_csv(filepath, table_name)
         info = query_engine.get_table_info(actual_table_name)
 

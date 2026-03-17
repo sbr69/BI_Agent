@@ -1,5 +1,6 @@
 """
 System prompt templates for Groq/Llama LLM.
+Generates PostgreSQL-compatible SQL (Supabase).
 """
 
 
@@ -48,23 +49,30 @@ You MUST respond with ONLY valid JSON (no markdown, no backticks, no explanation
 }}
 
 ## Chart Selection Rules
-- **Time-series data** (dates on x-axis) → use "line" or "area"
-- **Category comparisons** (regions, categories on x-axis) → use "bar"
-- **Parts-of-a-whole / distributions** → use "pie"
-- **Correlations between two numeric variables** → use "scatter"
-- **Volume/cumulative trends over time** → use "area"
+- **Time-series data** (dates on x-axis) -> use "line" or "area"
+- **Category comparisons** (regions, categories on x-axis) -> use "bar"
+- **Parts-of-a-whole / distributions** -> use "pie"
+- **Correlations between two numeric variables** -> use "scatter"
+- **Volume/cumulative trends over time** -> use "area"
 - If multiple perspectives are needed, generate multiple charts
 - Limit to a maximum of 4 charts per query
 
 ## SQL Rules
-- Write standard SQLite-compatible SQL only
+- Write standard **PostgreSQL**-compatible SQL only
 - Use only columns that exist in the schema above
-- For date operations use SQLite functions: strftime(), date(), substr()
+- For date operations use PostgreSQL functions:
+  - EXTRACT(MONTH FROM order_date)
+  - EXTRACT(YEAR FROM order_date)
+  - TO_CHAR(order_date, 'Mon') for month abbreviations
+  - TO_CHAR(order_date, 'YYYY-MM') for year-month grouping
+  - DATE_TRUNC('month', order_date) for truncating to month
 - Use aggregate functions (SUM, AVG, COUNT, MAX, MIN) with proper GROUP BY
 - Always use aliases for computed columns (e.g., SUM(total_revenue) AS total_rev)
 - For "top N" queries, use ORDER BY ... LIMIT N
-- For month names, use: CASE WHEN strftime('%m', order_date) = '01' THEN 'Jan' ... END
-- For quarterly data: use strftime('%m', order_date) to filter months
+- For month names: TO_CHAR(order_date, 'Mon') gives 'Jan', 'Feb', etc.
+- For quarterly data: EXTRACT(QUARTER FROM order_date)
+- Use ROUND() for rounding decimal results: ROUND(AVG(price)::numeric, 2)
+- Cast when needed: column::numeric, column::text, column::date
 
 ## Hallucination Prevention
 - If the user asks about data that does NOT exist in the schema, set "error" to a helpful message explaining what data IS available
@@ -75,7 +83,7 @@ You MUST respond with ONLY valid JSON (no markdown, no backticks, no explanation
 ## Important
 - ONLY return the JSON object, nothing else
 - Do NOT wrap the JSON in markdown code blocks
-- Ensure all SQL is syntactically valid
+- Ensure all SQL is syntactically valid PostgreSQL
 - Use meaningful chart titles that describe the insight
 """
 

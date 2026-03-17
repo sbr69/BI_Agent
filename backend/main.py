@@ -1,5 +1,6 @@
 """
-FastAPI Application — entry point for the BI Dashboard backend.
+FastAPI Application -- entry point for the BI Dashboard backend.
+Connects to Supabase PostgreSQL on startup.
 """
 
 import os
@@ -14,39 +15,28 @@ from api.routes import router
 # Load environment variables
 load_dotenv()
 
-# Data directory
-DATA_DIR = os.path.join(os.path.dirname(__file__), "data")
-UPLOADS_DIR = os.path.join(os.path.dirname(__file__), "uploads")
-
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Initialize the query engine on startup."""
+    """Initialize the query engine on startup, close on shutdown."""
     print("[*] Starting BI Dashboard Backend...")
 
-    # Initialize query engine and load all CSVs from data/
-    query_engine.initialize(DATA_DIR)
+    # Connect to Supabase PostgreSQL
+    query_engine.initialize()
 
     tables = query_engine.get_table_names()
-    total_rows = sum(len(query_engine.tables[t]) for t in tables)
-    print(f"[+] Loaded {len(tables)} table(s) with {total_rows:,} total rows")
+    print(f"[+] Connected to Supabase. Found {len(tables)} table(s).")
     for t in tables:
-        print(f"   [table] {t}: {len(query_engine.tables[t]):,} rows")
+        row_count = query_engine.get_row_count(t)
+        print(f"   [table] {t}: {row_count:,} rows")
 
-    # Also load any previously uploaded CSVs
-    if os.path.isdir(UPLOADS_DIR):
-        for filename in os.listdir(UPLOADS_DIR):
-            if filename.lower().endswith(".csv"):
-                filepath = os.path.join(UPLOADS_DIR, filename)
-                try:
-                    query_engine.load_csv(filepath)
-                    print(f"   [upload] {filename}: loaded")
-                except Exception as e:
-                    print(f"   [warn] (upload) {filename}: failed - {e}")
+    if not tables:
+        print("[!] No tables found. Use POST /api/upload or run: python seed.py")
 
     yield
 
     print("[-] Shutting down...")
+    query_engine.close()
 
 
 app = FastAPI(
@@ -56,7 +46,7 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# CORS — configurable origins (defaults to Vite dev server)
+# CORS -- configurable origins (defaults to Vite dev server)
 ALLOWED_ORIGINS = os.getenv("CORS_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173").split(",")
 app.add_middleware(
     CORSMiddleware,

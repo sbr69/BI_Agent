@@ -1,5 +1,6 @@
 """
-Schema Introspector — builds schema descriptions for LLM context.
+Schema Introspector -- builds schema descriptions for LLM context.
+All introspection is done via SQL against PostgreSQL (no Pandas).
 """
 
 from core.query_engine import query_engine
@@ -20,23 +21,21 @@ def get_schema_description(table_name: str) -> str:
 
     for col in info["columns"]:
         samples = ", ".join(str(v) for v in col["sample_values"])
-        lines.append(f"  - {col['name']} ({col['type']}) — e.g. {samples}")
+        lines.append(f"  - {col['name']} ({col['type']}) -- e.g. {samples}")
 
-    # Add unique values for categorical columns
-    df = query_engine.tables[table_name]
+    # Add unique values for categorical (TEXT) columns with low cardinality
     for col in info["columns"]:
-        col_name = col["name"]
-        if col["type"] == "TEXT" and df[col_name].nunique() <= 20:
-            unique_vals = df[col_name].dropna().unique().tolist()
-            lines.append(f"  Unique values for '{col_name}': {unique_vals}")
+        if col["type"] == "TEXT":
+            unique_vals = query_engine.get_unique_values(table_name, col["name"])
+            if unique_vals is not None:
+                lines.append(f"  Unique values for '{col['name']}': {unique_vals}")
 
-    # Add date range if date columns exist
+    # Add date range for date columns
     for col in info["columns"]:
-        if "date" in col["name"].lower():
-            col_name = col["name"]
-            min_date = df[col_name].min()
-            max_date = df[col_name].max()
-            lines.append(f"  Date range for '{col_name}': {min_date} to {max_date}")
+        if "date" in col["name"].lower() or col["type"] == "DATE":
+            date_range = query_engine.get_date_range(table_name, col["name"])
+            if date_range:
+                lines.append(f"  Date range for '{col['name']}': {date_range[0]} to {date_range[1]}")
 
     return "\n".join(lines)
 
