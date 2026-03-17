@@ -7,7 +7,6 @@ import QueryPage from "./pages/QueryPage";
 import ExplorerPage from "./pages/ExplorerPage";
 import HistoryPage from "./pages/HistoryPage";
 import UploadPage from "./pages/UploadPage";
-import SettingsPage from "./pages/SettingsPage";
 import ProfilePage from "./pages/ProfilePage";
 import LandingPage from "./pages/LandingPage";
 import LoginPage from "./pages/LoginPage";
@@ -38,7 +37,6 @@ function App() {
           <Route path="/explorer" element={<ExplorerPage />} />
           <Route path="/history" element={<HistoryPage />} />
           <Route path="/upload" element={<UploadPage />} />
-          <Route path="/settings" element={<SettingsPage />} />
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Route>

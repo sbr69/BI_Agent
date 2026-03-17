@@ -5,7 +5,6 @@ import {
   MessageSquareText,
   Database,
   History,
-  Settings,
   Upload,
   ChevronLeft,
   ChevronRight,
@@ -22,7 +21,6 @@ const NAV_ITEMS = [
   { to: "/explorer", icon: Database, label: "Data Explorer" },
   { to: "/history", icon: History, label: "History" },
   { to: "/upload", icon: Upload, label: "Upload Data" },
-  { to: "/settings", icon: Settings, label: "Settings" },
 ];
 
 export default function Sidebar({ collapsed, onToggle, isMobile, onClose }) {

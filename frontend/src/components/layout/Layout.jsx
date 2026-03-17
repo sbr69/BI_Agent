@@ -106,6 +106,7 @@ export default function Layout() {
     setIsLoading,
     refreshDatasets,
     queryHistory,
+    setQueryHistory,
     addToHistory,
     pinnedDashboards,
     addPin,
@@ -114,7 +115,7 @@ export default function Layout() {
     setDateFrom,
     dateTo,
     setDateTo,
-  }), [datasets, activeDataset, backendConnected, sessionId, dashboardData, chatHistory, isLoading, refreshDatasets, queryHistory, addToHistory, pinnedDashboards, addPin, removePin, dateFrom, dateTo]);
+  }), [datasets, activeDataset, backendConnected, sessionId, dashboardData, chatHistory, isLoading, refreshDatasets, queryHistory, setQueryHistory, addToHistory, pinnedDashboards, addPin, removePin, dateFrom, dateTo]);
 
   return (
     <AppContext.Provider value={ctx}>
