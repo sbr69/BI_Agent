@@ -15,11 +15,6 @@ class QueryRequest(BaseModel):
     dataset: Optional[str] = Field(None, description="Specific dataset/table to query")
 
 
-class UploadRequest(BaseModel):
-    """Metadata for CSV upload."""
-    table_name: Optional[str] = Field(None, description="Custom table name for the uploaded CSV")
-
-
 # ─── Response Models ───
 
 class ColumnInfo(BaseModel):

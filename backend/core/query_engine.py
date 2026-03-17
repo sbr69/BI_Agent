@@ -13,12 +13,8 @@ from datetime import datetime, date
 from decimal import Decimal
 from typing import Any
 
-import psycopg2
 from psycopg2 import pool as pgpool, sql as pgsql
 from psycopg2.extras import execute_values
-from dotenv import load_dotenv
-
-load_dotenv()
 
 # Table names must be alphanumeric/underscore only
 _SAFE_NAME_RE = re.compile(r"^[a-z][a-z0-9_]*$")
@@ -145,7 +141,7 @@ class QueryEngine:
                     pgsql.Identifier(table_name), col_defs
                 ))
 
-                # Prepare values for batch insert
+                # Prepare values for batch insert (with safe type coercion)
                 insert_rows = []
                 for row in rows:
                     values = []
@@ -156,9 +152,15 @@ class QueryEngine:
                         elif col_types[i] == "DATE":
                             values.append(self._parse_date(val))
                         elif col_types[i] == "BIGINT":
-                            values.append(int(val))
+                            try:
+                                values.append(int(val))
+                            except (ValueError, TypeError):
+                                values.append(None)
                         elif col_types[i] == "DOUBLE PRECISION":
-                            values.append(float(val))
+                            try:
+                                values.append(float(val))
+                            except (ValueError, TypeError):
+                                values.append(None)
                         else:
                             values.append(val)
                     insert_rows.append(tuple(values))
@@ -237,6 +239,11 @@ class QueryEngine:
     # Query execution
     # ------------------------------------------------------------------
 
+    # Maximum rows returned from any single query (prevents memory exhaustion)
+    MAX_RESULT_ROWS = 10_000
+    # Statement timeout in milliseconds (prevents runaway queries)
+    STATEMENT_TIMEOUT_MS = 30_000
+
     def execute_query(self, sql: str) -> list[dict[str, Any]]:
         """Execute a read-only SQL query and return results as list of dicts."""
         if not self._pool:
@@ -250,10 +257,20 @@ class QueryEngine:
             raise ValueError("Compound SQL statements are not allowed")
 
         blocked_keywords = [
-            "INSERT", "UPDATE", "DELETE", "DROP", "ALTER", "CREATE",
-            "TRUNCATE", "COPY", "GRANT", "REVOKE",
-            "LISTEN", "NOTIFY", "LOCK", "DISCARD",
+            # DML
+            "INSERT", "UPDATE", "DELETE", "MERGE",
+            # DDL
+            "DROP", "ALTER", "CREATE", "TRUNCATE",
+            # DCL / admin
+            "COPY", "GRANT", "REVOKE", "SET", "RESET",
+            # Transaction control
             "SAVEPOINT", "RELEASE", "ROLLBACK", "COMMIT", "BEGIN",
+            # Async / locking
+            "LISTEN", "NOTIFY", "LOCK", "DISCARD",
+            # Code execution (PL/pgSQL injection)
+            "DO", "CALL", "PREPARE", "EXECUTE", "DEALLOCATE",
+            # Information leakage
+            "EXPLAIN",
         ]
         for keyword in blocked_keywords:
             if re.search(rf"\b{keyword}\b", sql_upper):
@@ -265,11 +282,14 @@ class QueryEngine:
         conn = self._get_conn()
         try:
             with conn.cursor() as cur:
+                # Enforce read-only transaction and statement timeout
+                cur.execute("SET LOCAL statement_timeout = %s", (self.STATEMENT_TIMEOUT_MS,))
+                cur.execute("SET LOCAL default_transaction_read_only = ON")
                 cur.execute(sql)
                 if not cur.description:
                     return []
                 columns = [desc[0] for desc in cur.description]
-                rows = cur.fetchall()
+                rows = cur.fetchmany(self.MAX_RESULT_ROWS)
                 return [
                     {col: self._convert_value(val) for col, val in zip(columns, row)}
                     for row in rows
@@ -277,6 +297,8 @@ class QueryEngine:
         except Exception as e:
             raise ValueError(f"SQL execution error: {str(e)}")
         finally:
+            # Reset connection state so the pool connection is clean
+            conn.rollback()
             self._put_conn(conn)
 
     @staticmethod

@@ -6,7 +6,6 @@ import os
 import re
 import time
 from fastapi import APIRouter, UploadFile, File, Form, HTTPException
-from typing import Optional
 
 from api.models import (
     QueryRequest, QueryResponse, ChartConfig,
@@ -37,8 +36,15 @@ def _validate_session_id(session_id: str) -> str:
     return session_id
 
 
+# ---------------------------------------------------------------------------
+# All route handlers are sync (def, not async def) because they call blocking
+# psycopg2 / Groq SDK methods.  FastAPI automatically dispatches sync handlers
+# to a thread-pool so the event loop stays unblocked.
+# ---------------------------------------------------------------------------
+
+
 @router.get("/health", response_model=HealthResponse)
-async def health_check():
+def health_check():
     """Health check endpoint."""
     tables = query_engine.get_table_names()
     total_rows = sum(query_engine.get_row_count(t) for t in tables)
@@ -50,7 +56,7 @@ async def health_check():
 
 
 @router.get("/datasets", response_model=DatasetsResponse)
-async def list_datasets():
+def list_datasets():
     """List all available datasets with schema info."""
     datasets = get_datasets_info()
     return DatasetsResponse(
@@ -66,7 +72,7 @@ async def list_datasets():
 
 
 @router.post("/query", response_model=QueryResponse)
-async def process_query(request: QueryRequest):
+def process_query(request: QueryRequest):
     """Process a natural language query and return chart data."""
     start_time = time.time()
 
@@ -172,9 +178,9 @@ async def process_query(request: QueryRequest):
 
 
 @router.post("/upload", response_model=UploadResponse)
-async def upload_csv(
+def upload_csv(
     file: UploadFile = File(...),
-    table_name: Optional[str] = Form(None)
+    table_name: str | None = Form(None)
 ):
     """Upload a CSV file and make it queryable."""
     # Validate filename
@@ -186,8 +192,8 @@ async def upload_csv(
     if not _SAFE_FILENAME_RE.match(safe_filename):
         raise HTTPException(status_code=400, detail="Invalid filename. Use only letters, numbers, dashes, underscores, and spaces.")
 
-    # Validate file size
-    contents = await file.read()
+    # Read file synchronously (sync handler — no await needed)
+    contents = file.file.read()
     if len(contents) > MAX_UPLOAD_SIZE:
         raise HTTPException(status_code=413, detail=f"File too large. Maximum size is {MAX_UPLOAD_SIZE // (1024*1024)} MB")
 
@@ -230,7 +236,7 @@ async def upload_csv(
 
 
 @router.delete("/session/{session_id}")
-async def clear_session(session_id: str):
+def clear_session(session_id: str):
     """Clear conversation history for a session."""
     session_id = _validate_session_id(session_id)
     if session_id in _sessions:

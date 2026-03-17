@@ -7,9 +7,6 @@ import json
 import os
 import re
 from groq import Groq
-from dotenv import load_dotenv
-
-load_dotenv()
 
 
 class GroqClient:
