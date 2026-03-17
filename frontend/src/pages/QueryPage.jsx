@@ -122,8 +122,9 @@ export default function QueryPage() {
   const previousQuery = hasPreviousContext ? previousQueries[previousQueries.length - 2]?.content : null;
 
   return (
-    <div className="space-y-6 animate-fade-in">
-      {/* Page Header */}
+    <div className="flex-1 flex flex-col animate-fade-in relative">
+      <div className="flex-1 space-y-6 pb-8">
+        {/* Page Header */}
       <div>
         <h1 className="text-2xl font-bold text-text-primary">AI Query</h1>
         <p className="text-sm text-text-muted mt-0.5">
@@ -157,47 +158,7 @@ export default function QueryPage() {
         </div>
       )}
 
-      {/* Input Area */}
-      <div className="card p-4">
-        <div className="flex gap-3">
-          <div className="flex-1 relative">
-            <textarea
-              ref={inputRef}
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder={hasPreviousContext
-                ? "Ask a follow-up question..."
-                : `Ask about "${activeDataset || "your data"}"...`}
-              rows={2}
-              className="w-full px-4 py-3 rounded-lg border border-border bg-surface-light text-text-primary text-sm placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary resize-none transition-all"
-            />
-          </div>
-          <button
-            onClick={() => handleSubmit()}
-            disabled={!input.trim() || isLoading}
-            className="self-end px-5 py-3 bg-primary hover:bg-primary-dark disabled:bg-surface-lighter disabled:text-text-muted text-white rounded-lg font-medium text-sm transition-colors flex items-center gap-2"
-          >
-            <Send size={16} />
-            Ask
-          </button>
-        </div>
 
-        {chatHistory.length === 0 && (
-          <div className="flex flex-wrap gap-2 mt-3 pt-3 border-t border-border">
-            {EXAMPLE_PROMPTS.map((p) => (
-              <button
-                key={p}
-                onClick={() => handleSubmit(p)}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-border hover:border-primary-200 hover:bg-primary-50 text-xs text-text-secondary hover:text-primary transition-all"
-              >
-                <Lightbulb size={11} />
-                {p}
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
 
       {/* Chat History */}
       {chatHistory.length > 0 && (
@@ -347,6 +308,51 @@ export default function QueryPage() {
           )}
         </div>
       )}
+      </div>
+
+      {/* Input Area */}
+      <div className="sticky -bottom-4 md:-bottom-6 z-10 pt-2 pb-4 md:pb-6 bg-surface -mx-4 -mb-4 px-4 md:-mx-6 md:-mb-6 md:px-6">
+        <div className="card p-4 shadow-sm border border-border">
+          {chatHistory.length === 0 && (
+            <div className="flex flex-wrap gap-2 mb-3 pb-3 border-b border-border">
+              {EXAMPLE_PROMPTS.map((p) => (
+                <button
+                  key={p}
+                  onClick={() => handleSubmit(p)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-border hover:border-primary-200 hover:bg-primary-50 text-xs text-text-secondary hover:text-primary transition-all"
+                >
+                  <Lightbulb size={11} />
+                  {p}
+                </button>
+              ))}
+            </div>
+          )}
+
+          <div className="flex gap-3">
+            <div className="flex-1 relative">
+              <textarea
+                ref={inputRef}
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder={hasPreviousContext
+                  ? "Ask a follow-up question..."
+                  : `Ask about "${activeDataset || "your data"}"...`}
+                rows={2}
+                className="w-full px-4 py-3 rounded-lg border border-border bg-surface-light text-text-primary text-sm placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary resize-none transition-all"
+              />
+            </div>
+            <button
+              onClick={() => handleSubmit()}
+              disabled={!input.trim() || isLoading}
+              className="self-end px-5 py-3 bg-primary hover:bg-primary-dark disabled:bg-surface-lighter disabled:text-text-muted text-white rounded-lg font-medium text-sm transition-colors flex items-center gap-2"
+            >
+              <Send size={16} />
+              Ask
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
