@@ -94,12 +94,12 @@ export function pivotData(data, xKey, yKey, groupBy) {
 export function formatValue(value) {
   if (typeof value !== "number") return value;
   if (Math.abs(value) >= 1_000_000) {
-    return `$${(value / 1_000_000).toFixed(2)}M`;
+    return `${(value / 1_000_000).toFixed(2)}M`;
   }
   if (Math.abs(value) >= 1_000) {
-    return `$${(value / 1_000).toFixed(1)}K`;
+    return `${(value / 1_000).toFixed(1)}K`;
   }
-  return value.toFixed(2);
+  return value.toLocaleString("en-US", { maximumFractionDigits: 2 });
 }
 
 export function formatNumber(value) {

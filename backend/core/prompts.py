@@ -32,14 +32,21 @@ You MUST respond with ONLY valid JSON (no markdown, no backticks, no explanation
   ],
   "charts": [
     {{
-      "type": "bar|line|pie|area|scatter",
+      "type": "bar|line|pie|area|scatter|table",
       "title": "Chart Title",
       "description": "What this chart shows",
       "sql_index": 0,
       "xKey": "column_for_x_axis",
       "yKeys": ["column_for_y_axis"],
       "groupBy": null,
-      "colorScheme": "default"
+      "colorScheme": "default",
+      "highlights": [
+        {{
+          "value": "North America",
+          "color": "#EF4444",
+          "label": "Top Region"
+        }}
+      ]
     }}
   ],
   "kpis": [
@@ -74,8 +81,16 @@ You MUST respond with ONLY valid JSON (no markdown, no backticks, no explanation
 - **Parts-of-a-whole / distributions** -> use "pie"
 - **Correlations between two numeric variables** -> use "scatter"
 - **Volume/cumulative trends over time** -> use "area"
+- **Ranked lists / detailed records / "top N" results** -> use "table" (xKey and yKeys can be empty for table type)
 - If multiple perspectives are needed, generate multiple charts
 - Limit to a maximum of 4 charts per query
+
+## Highlights Rules
+- Use the "highlights" array to visually call out noteworthy data points (e.g. top performer, outlier, target exceeded)
+- "value" must match the exact xKey value in the data (e.g. a region name, month, product)
+- "color" is an optional hex color (e.g. "#EF4444" for red, "#22C55E" for green)
+- "label" is a short annotation shown on hover (e.g. "Best Q", "Below Target")
+- Only highlight 1–3 items per chart; leave "highlights" as [] when nothing is noteworthy
 
 ## SQL Rules
 - Write standard **PostgreSQL**-compatible SQL only

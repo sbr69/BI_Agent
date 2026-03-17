@@ -106,7 +106,7 @@ class GroqClient:
         }
 
         # Validate each chart has required fields
-        valid_chart_types = {"bar", "line", "pie", "area", "scatter"}
+        valid_chart_types = {"bar", "line", "pie", "area", "scatter", "table"}
         validated_charts = []
         for chart in result["charts"]:
             if isinstance(chart, dict) and chart.get("type") in valid_chart_types:
@@ -118,20 +118,36 @@ class GroqClient:
                     "xKey": chart.get("xKey", ""),
                     "yKeys": chart.get("yKeys", []),
                     "groupBy": chart.get("groupBy", None),
-                    "colorScheme": chart.get("colorScheme", "default")
+                    "colorScheme": chart.get("colorScheme", "default"),
+                    "highlights": [
+                        h for h in chart.get("highlights", [])
+                        if isinstance(h, dict) and h.get("value") is not None
+                    ],
                 })
         result["charts"] = validated_charts
 
-        # Validate KPIs
+        # Validate KPIs — accept both:
+        #   (a) dynamic pattern: label + sql_index + valueKey  (LLM-preferred)
+        #   (b) static  pattern: label + value                 (fallback)
         validated_kpis = []
         for kpi in result["kpis"]:
-            if isinstance(kpi, dict) and kpi.get("label") and kpi.get("value"):
-                validated_kpis.append({
-                    "label": str(kpi["label"]),
-                    "value": str(kpi["value"]),
-                    "change": kpi.get("change"),
-                    "trend": kpi.get("trend", "neutral"),
-                })
+            if not isinstance(kpi, dict) or not kpi.get("label"):
+                continue
+            has_dynamic = kpi.get("sql_index") is not None and kpi.get("valueKey")
+            has_static = kpi.get("value") is not None
+            if not (has_dynamic or has_static):
+                continue
+            validated_kpis.append({
+                "label": str(kpi["label"]),
+                # Keep value as None when using dynamic pattern so routes.py
+                # computes it from the SQL result
+                "value": str(kpi["value"]) if has_static else None,
+                "sql_index": kpi.get("sql_index"),
+                "valueKey": kpi.get("valueKey"),
+                "prefix": kpi.get("prefix", ""),
+                "change": kpi.get("change"),
+                "trend": kpi.get("trend", "neutral"),
+            })
         result["kpis"] = validated_kpis
 
         # Validate SQL queries

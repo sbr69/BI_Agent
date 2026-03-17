@@ -15,7 +15,7 @@ from fastapi import APIRouter, UploadFile, File, Form, HTTPException, Request
 from fastapi.responses import StreamingResponse
 
 from api.models import (
-    QueryRequest, QueryResponse, ChartConfig, KPIConfig,
+    QueryRequest, QueryResponse, ChartConfig, KPIConfig, HighlightConfig,
     DatasetsResponse, DatasetInfo, ColumnInfo,
     UploadResponse, HealthResponse,
     PinRequest, PinnedDashboard,
@@ -69,6 +69,28 @@ def _validate_session_id(session_id: str) -> str:
     if not _SESSION_ID_RE.match(session_id):
         raise HTTPException(status_code=400, detail="Invalid session_id format")
     return session_id
+
+
+def _format_kpi_value(raw, prefix: str = "") -> str:
+    """Format a raw numeric KPI value into a human-readable string."""
+    try:
+        num = float(raw)
+    except (TypeError, ValueError):
+        return str(raw)
+
+    abs_num = abs(num)
+    if abs_num >= 1_000_000_000:
+        formatted = f"{num / 1_000_000_000:.2f}B"
+    elif abs_num >= 1_000_000:
+        formatted = f"{num / 1_000_000:.2f}M"
+    elif abs_num >= 1_000:
+        formatted = f"{num / 1_000:.1f}K"
+    elif isinstance(raw, float) or (abs_num > 0 and abs_num < 1):
+        formatted = f"{num:,.2f}"
+    else:
+        formatted = f"{int(num):,}"
+
+    return f"{prefix}{formatted}"
 
 
 # ---------------------------------------------------------------------------
@@ -198,18 +220,43 @@ def process_query(request: QueryRequest, req: Request):
                 xKey=chart_config.get("xKey", ""),
                 yKeys=chart_config.get("yKeys", []),
                 groupBy=chart_config.get("groupBy"),
-                colorScheme=chart_config.get("colorScheme", "default")
+                colorScheme=chart_config.get("colorScheme", "default"),
+                highlights=[
+                    HighlightConfig(**h)
+                    for h in chart_config.get("highlights", [])
+                    if isinstance(h, dict) and h.get("value") is not None
+                ],
             ))
 
-    # Extract KPIs from LLM response
+    # Extract KPIs from LLM response — compute values from query results
     kpis = []
     for kpi_data in llm_response.get("kpis", []):
-        if isinstance(kpi_data, dict) and kpi_data.get("label") and kpi_data.get("value"):
+        if not isinstance(kpi_data, dict) or not kpi_data.get("label"):
+            continue
+
+        # If LLM provided sql_index + valueKey, compute value from query results
+        sql_idx = kpi_data.get("sql_index")
+        value_key = kpi_data.get("valueKey")
+
+        if sql_idx is not None and value_key and sql_idx < len(query_results):
+            data = query_results[sql_idx]
+            if data and value_key in data[0]:
+                raw = data[0][value_key]
+                prefix = kpi_data.get("prefix", "")
+                formatted = _format_kpi_value(raw, prefix)
+                kpis.append(KPIConfig(
+                    label=kpi_data["label"],
+                    value=formatted,
+                    change=kpi_data.get("change"),
+                    trend=kpi_data.get("trend", "neutral"),
+                ))
+        elif kpi_data.get("value"):
+            # Fallback: LLM provided a static value
             kpis.append(KPIConfig(
                 label=kpi_data["label"],
                 value=str(kpi_data["value"]),
                 change=kpi_data.get("change"),
-                trend=kpi_data.get("trend", "neutral")
+                trend=kpi_data.get("trend", "neutral"),
             ))
 
     # Save to session history

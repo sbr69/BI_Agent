@@ -9,8 +9,10 @@ import { CHART_COLORS, pivotData, formatNumber, parseChartData } from "../utils/
 import {
   Download, Maximize2, X, BarChart3, LineChart as LineIcon,
   PieChart as PieIcon, AreaChart as AreaIcon, ScatterChart as ScatterIcon,
+  Table2,
 } from "lucide-react";
 import { exportChartCSV } from "../utils/api";
+import DataTable from "./DataTable";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 
@@ -28,7 +30,9 @@ const CustomTooltip = ({ active, payload, label }) => {
   );
 };
 
-function BarChartComponent({ data, xKey, yKeys, groupBy }) {
+function BarChartComponent({ data, xKey, yKeys, groupBy, highlights = [] }) {
+  const hlMap = new Map(highlights.map(h => [String(h.value), h.color || "#F59E0B"]));
+
   if (groupBy && yKeys.length === 1) {
     const result = pivotData(data, xKey, yKeys[0], groupBy);
     if (result.pivotedData) {
@@ -57,7 +61,19 @@ function BarChartComponent({ data, xKey, yKeys, groupBy }) {
         <Tooltip content={<CustomTooltip />} cursor={{ fill: 'transparent' }} />
         <Legend />
         {yKeys.map((key, i) => (
-          <Bar key={key} dataKey={key} fill={CHART_COLORS[i % CHART_COLORS.length]} radius={[4, 4, 0, 0]} background={false} />
+          <Bar key={key} dataKey={key} radius={[4, 4, 0, 0]} background={false}>
+            {data.map((entry, idx) => {
+              const hlColor = hlMap.get(String(entry[xKey]));
+              return (
+                <Cell
+                  key={idx}
+                  fill={hlColor || CHART_COLORS[i % CHART_COLORS.length]}
+                  stroke={hlColor ? "rgba(0,0,0,0.25)" : undefined}
+                  strokeWidth={hlColor ? 1.5 : 0}
+                />
+              );
+            })}
+          </Bar>
         ))}
       </BarChart>
     </ResponsiveContainer>
@@ -100,7 +116,8 @@ function LineChartComponent({ data, xKey, yKeys, groupBy }) {
   );
 }
 
-function PieChartComponent({ data, xKey, yKeys }) {
+function PieChartComponent({ data, xKey, yKeys, highlights = [] }) {
+  const hlMap = new Map(highlights.map(h => [String(h.value), h.color || "#F59E0B"]));
   const valueKey = yKeys[0] || Object.keys(data[0] || {}).find((k) => k !== xKey);
   const RADIAN = Math.PI / 180;
   const renderLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent }) => {
@@ -117,9 +134,17 @@ function PieChartComponent({ data, xKey, yKeys }) {
     <ResponsiveContainer width="100%" height={350}>
       <PieChart>
         <Pie data={data} dataKey={valueKey} nameKey={xKey} cx="50%" cy="50%" outerRadius={130} innerRadius={50} label={renderLabel} labelLine={false} animationBegin={0} animationDuration={800}>
-          {data.map((_, i) => (
-            <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
-          ))}
+          {data.map((entry, i) => {
+            const hlColor = hlMap.get(String(entry[xKey]));
+            return (
+              <Cell
+                key={i}
+                fill={hlColor || CHART_COLORS[i % CHART_COLORS.length]}
+                stroke={hlColor ? "rgba(0,0,0,0.25)" : undefined}
+                strokeWidth={hlColor ? 2 : 0}
+              />
+            );
+          })}
         </Pie>
         <Tooltip content={<CustomTooltip />} />
         <Legend />
@@ -198,6 +223,7 @@ const CHART_TYPE_OPTIONS = [
   { type: "pie", icon: PieIcon, label: "Pie" },
   { type: "area", icon: AreaIcon, label: "Area" },
   { type: "scatter", icon: ScatterIcon, label: "Scatter" },
+  { type: "table", icon: Table2, label: "Table" },
 ];
 
 export default function ChartRenderer({ chart, index = 0, onTypeChange }) {
@@ -241,14 +267,6 @@ export default function ChartRenderer({ chart, index = 0, onTypeChange }) {
     if (onTypeChange) onTypeChange(newType);
   };
 
-  if (!ChartComponent) {
-    return (
-      <div className="card p-5">
-        <p className="text-error">Unsupported chart type: {activeType}</p>
-      </div>
-    );
-  }
-
   if (!chart.data?.length) {
     return (
       <div className="card p-5">
@@ -257,8 +275,51 @@ export default function ChartRenderer({ chart, index = 0, onTypeChange }) {
     );
   }
 
+  // Table type: render DataTable directly (no Recharts needed)
+  if (activeType === "table") {
+    return (
+      <div
+        className="animate-fade-in-up bg-white rounded-xl shadow-[0_1px_3px_0_rgb(0,0,0,0.02)] border border-border p-5"
+        style={{ animationDelay: `${index * 0.15}s` }}
+      >
+        <div className="flex items-start justify-between mb-4">
+          <div>
+            <h3 className="font-semibold text-text-primary text-base">{chart.title || "Table"}</h3>
+            {chart.description && <p className="text-sm text-text-secondary mt-1">{chart.description}</p>}
+          </div>
+          <div className="flex items-center gap-1 bg-surface-light p-1 rounded-lg border border-border">
+            {CHART_TYPE_OPTIONS.map(({ type, icon: Icon, label }) => (
+              <button
+                key={type}
+                onClick={() => handleTypeChange(type)}
+                title={label}
+                className={`p-1.5 rounded-md transition-colors ${
+                  activeType === type
+                    ? "bg-white shadow-sm ring-1 ring-border text-primary"
+                    : "text-text-muted hover:text-text-secondary"
+                }`}
+              >
+                <Icon size={14} />
+              </button>
+            ))}
+          </div>
+        </div>
+        <DataTable data={chart.data} title={chart.title} />
+      </div>
+    );
+  }
+
+  if (!ChartComponent) {
+    return (
+      <div className="card p-5">
+        <p className="text-error">Unsupported chart type: {activeType}</p>
+      </div>
+    );
+  }
+
   const safeData = parseChartData(chart.data, chart.yKeys);
   const safeYKeys = chart.yKeys || (Object.keys(chart.data[0] || {}).filter(k => k !== chart.xKey && k !== chart.groupBy));
+  const highlights = chart.highlights || [];
 
   const chartContent = (
     <div ref={chartRef} className="bg-white w-full flex-grow flex flex-col">
@@ -268,6 +329,7 @@ export default function ChartRenderer({ chart, index = 0, onTypeChange }) {
           xKey={chart.xKey}
           yKeys={safeYKeys}
           groupBy={chart.groupBy}
+          highlights={highlights}
         />
       </div>
       <div className="mt-4 pt-3 border-t border-border flex items-center justify-between text-xs text-text-muted font-medium">

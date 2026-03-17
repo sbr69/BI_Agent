@@ -49,8 +49,15 @@ class DatasetInfo(BaseModel):
     columns: list[ColumnInfo]
 
 
+class HighlightConfig(BaseModel):
+    """A specific data point that should be visually highlighted in a chart."""
+    value: str                    # The xKey value to highlight, e.g. "North America"
+    color: Optional[str] = None   # Override color, e.g. "#EF4444"
+    label: Optional[str] = None   # Annotation label, e.g. "Best Region"
+
+
 class ChartConfig(BaseModel):
-    type: str  # bar, line, pie, area, scatter
+    type: str  # bar, line, pie, area, scatter, table
     title: str
     description: str = ""
     data: list[dict] = []
@@ -58,6 +65,7 @@ class ChartConfig(BaseModel):
     yKeys: list[str] = []
     groupBy: Optional[str] = None
     colorScheme: str = "default"
+    highlights: list[HighlightConfig] = []
 
 
 class KPIConfig(BaseModel):
