@@ -130,6 +130,20 @@ def list_datasets():
         ]
     )
 
+@router.delete("/datasets/{dataset_name}")
+def delete_dataset(dataset_name: str):
+    """Delete a dataset and its underlying table."""
+    tables = query_engine.get_table_names()
+    if dataset_name not in tables:
+        raise HTTPException(status_code=404, detail="Dataset not found")
+    
+    try:
+        query_engine.remove_table(dataset_name)
+        invalidate_schema_cache()
+        return {"message": "Dataset deleted successfully"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 
 @router.post("/query", response_model=QueryResponse)
 def process_query(request: QueryRequest, req: Request):

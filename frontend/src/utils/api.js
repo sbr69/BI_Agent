@@ -55,6 +55,12 @@ export async function fetchDatasets() {
   return fetchJson(`${API_BASE}/datasets`);
 }
 
+export async function deleteDataset(datasetName) {
+  return fetchJson(`${API_BASE}/datasets/${encodeURIComponent(datasetName)}`, {
+    method: 'DELETE'
+  });
+}
+
 export async function uploadCSV(file, tableName = null) {
   const formData = new FormData();
   formData.append('file', file);

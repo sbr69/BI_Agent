@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useAppContext } from "../components/layout/Layout";
 import DataTable from "../components/DataTable";
-import { fetchPreview } from "../utils/api";
+import { fetchPreview, deleteDataset } from "../utils/api";
 import {
   Database,
   Table2,
@@ -11,13 +11,18 @@ import {
   Calendar,
   Search,
   Loader2,
+  Trash2,
+  AlertTriangle,
+  X
 } from "lucide-react";
 
 export default function ExplorerPage() {
-  const { datasets, activeDataset, setActiveDataset } =
+  const { datasets, activeDataset, setActiveDataset, refreshDatasets } =
     useAppContext();
   const [previewData, setPreviewData] = useState(null);
   const [loadingPreview, setLoadingPreview] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [datasetToDelete, setDatasetToDelete] = useState(null);
 
   const currentDataset = datasets.find((d) => d.name === activeDataset);
 
@@ -45,6 +50,33 @@ export default function ExplorerPage() {
     }
   };
 
+  const triggerDelete = (e, datasetName) => {
+    e.stopPropagation();
+    console.log("Triggering delete for:", datasetName);
+    setDatasetToDelete(datasetName);
+  };
+
+  const confirmDelete = async (e) => {
+    if (e) e.stopPropagation();
+    if (!datasetToDelete) return;
+    setIsDeleting(true);
+    try {
+      console.log("Confirming delete for:", datasetToDelete);
+      await deleteDataset(datasetToDelete);
+      await refreshDatasets();
+      if (activeDataset === datasetToDelete) {
+        setPreviewData(null);
+        setActiveDataset(datasets.length > 1 ? datasets.find(d => d.name !== datasetToDelete)?.name : null);
+      }
+    } catch (err) {
+      console.error("Delete failed:", err);
+      alert(`Failed to delete dataset: ${err.message}`);
+    } finally {
+      setIsDeleting(false);
+      setDatasetToDelete(null);
+    }
+  };
+
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Page Header */}
@@ -58,16 +90,35 @@ export default function ExplorerPage() {
       {/* Dataset Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {datasets.map((ds) => (
-          <button
+          <div
             key={ds.name}
             onClick={() => setActiveDataset(ds.name)}
-            className={`card p-4 text-left transition-all card-hover ${
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                setActiveDataset(ds.name);
+              }
+            }}
+            role="button"
+            tabIndex={0}
+            className={`relative card p-4 text-left transition-all card-hover group ${
               ds.name === activeDataset
                 ? "ring-2 ring-primary border-primary"
                 : ""
             }`}
           >
-            <div className="flex items-center gap-3 mb-3">
+            <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
+              <button
+                onClick={(e) => triggerDelete(e, ds.name)}
+                disabled={isDeleting}
+                className="p-1.5 bg-error-50 text-error hover:bg-error hover:text-white rounded-md transition-colors"
+                title="Delete Dataset"
+              >
+                <Trash2 size={14} />
+              </button>
+            </div>
+            
+            <div className="flex items-center gap-3 mb-3 pr-8">
               <div className="w-9 h-9 rounded-lg bg-primary-50 flex items-center justify-center">
                 <Database size={16} className="text-primary" />
               </div>
@@ -84,7 +135,7 @@ export default function ExplorerPage() {
               <Columns3 size={12} />
               <span>{ds.columns?.length} columns</span>
             </div>
-          </button>
+          </div>
         ))}
 
         {datasets.length === 0 && (
@@ -168,6 +219,56 @@ export default function ExplorerPage() {
             Data Preview
           </h3>
           <DataTable data={previewData} title={`${activeDataset} preview`} />
+        </div>
+      )}
+
+      {/* Modern Delete Confirmation Modal */}
+      {datasetToDelete && (
+        <div 
+          className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm animate-fade-in p-4"
+          onClick={() => setDatasetToDelete(null)}
+        >
+          <div 
+            className="w-full max-w-sm bg-white rounded-2xl shadow-xl border border-border overflow-hidden animate-fade-in-up flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-5 flex flex-col gap-4">
+              <div className="flex items-start gap-4">
+                <div className="w-10 h-10 rounded-full bg-error-50 flex items-center justify-center shrink-0 border border-error/10">
+                  <AlertTriangle size={20} className="text-error" />
+                </div>
+                <div>
+                  <h3 className="text-base font-semibold text-text-primary mb-1">Delete Dataset</h3>
+                  <p className="text-sm text-text-secondary leading-relaxed">
+                    Are you sure you want to delete <span className="font-semibold text-text-primary">"{datasetToDelete}"</span>? This action cannot be undone and will remove all associated data.
+                  </p>
+                </div>
+              </div>
+            </div>
+            
+            <div className="px-5 py-4 bg-surface-light border-t border-border flex justify-end gap-3 flex-shrink-0">
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setDatasetToDelete(null);
+                }}
+                disabled={isDeleting}
+                className="px-4 py-2 text-sm font-medium text-text-secondary hover:text-text-primary hover:bg-surface rounded-lg transition-colors border border-transparent hover:border-border disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={confirmDelete}
+                disabled={isDeleting}
+                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-error hover:bg-red-600 rounded-lg transition-colors shadow-sm disabled:opacity-50"
+              >
+                {isDeleting ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
+                {isDeleting ? "Deleting..." : "Delete Dataset"}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
