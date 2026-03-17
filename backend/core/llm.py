@@ -40,9 +40,16 @@ class GroqClient:
                 stream=False,
             )
 
-            raw_text = response.choices[0].message.content.strip()
+            content = response.choices[0].message.content
+            if not content:
+                return {
+                    "sql_queries": [],
+                    "charts": [],
+                    "insights": [],
+                    "error": "LLM returned an empty response. Please try rephrasing your question."
+                }
+            raw_text = content.strip()
 
-            # Try to parse JSON from the response
             parsed = self._extract_json(raw_text)
 
             # Validate the structure
@@ -76,10 +83,15 @@ class GroqClient:
         except json.JSONDecodeError:
             pass
 
-        # Try to find JSON object in the text
-        match = re.search(r'\{[\s\S]*\}', text)
+        # Try to find JSON object in the text (non-greedy to avoid matching garbage)
+        match = re.search(r'\{[\s\S]*?\}(?=[^}]*$)', text)
+        if not match:
+            match = re.search(r'\{[\s\S]*\}', text)
         if match:
-            return json.loads(match.group())
+            try:
+                return json.loads(match.group())
+            except json.JSONDecodeError:
+                pass
 
         raise json.JSONDecodeError("No valid JSON found", text, 0)
 

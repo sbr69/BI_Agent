@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, createContext, useContext } from "react";
+import { useState, useEffect, useCallback, useMemo, createContext, useContext } from "react";
 import { Outlet } from "react-router-dom";
 import Sidebar from "./Sidebar";
 import TopBar from "./TopBar";
@@ -10,6 +10,19 @@ export function useAppContext() {
   return useContext(AppContext);
 }
 
+const HISTORY_KEY = "bi_agent_query_history";
+
+function loadSavedHistory() {
+  try {
+    const saved = localStorage.getItem(HISTORY_KEY);
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      return parsed.map((e) => ({ ...e, timestamp: new Date(e.timestamp) }));
+    }
+  } catch { /* ignore */ }
+  return [];
+}
+
 export default function Layout() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [datasets, setDatasets] = useState([]);
@@ -19,7 +32,7 @@ export default function Layout() {
   const [dashboardData, setDashboardData] = useState(null);
   const [chatHistory, setChatHistory] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [queryHistory, setQueryHistory] = useState([]);
+  const [queryHistory, setQueryHistory] = useState(loadSavedHistory);
 
   useEffect(() => {
     fetchDatasets()
@@ -30,6 +43,13 @@ export default function Layout() {
       })
       .catch(() => setBackendConnected(false));
   }, []);
+
+  // Persist query history to localStorage
+  useEffect(() => {
+    try {
+      localStorage.setItem(HISTORY_KEY, JSON.stringify(queryHistory.slice(0, 50)));
+    } catch { /* ignore quota errors */ }
+  }, [queryHistory]);
 
   const refreshDatasets = useCallback(() => {
     fetchDatasets()
@@ -44,7 +64,7 @@ export default function Layout() {
     setQueryHistory((prev) => [entry, ...prev]);
   }, []);
 
-  const ctx = {
+  const ctx = useMemo(() => ({
     datasets,
     setDatasets,
     activeDataset,
@@ -61,7 +81,7 @@ export default function Layout() {
     refreshDatasets,
     queryHistory,
     addToHistory,
-  };
+  }), [datasets, activeDataset, backendConnected, sessionId, dashboardData, chatHistory, isLoading, refreshDatasets, queryHistory, addToHistory]);
 
   return (
     <AppContext.Provider value={ctx}>

@@ -4,7 +4,6 @@ import {
   Clock,
   BarChart3,
   MessageSquareText,
-  Trash2,
   RotateCcw,
   History as HistoryIcon,
 } from "lucide-react";

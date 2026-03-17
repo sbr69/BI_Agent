@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useAppContext } from "../components/layout/Layout";
 import DataTable from "../components/DataTable";
-import { sendQuery } from "../utils/api";
+import { fetchPreview } from "../utils/api";
 import {
   Database,
   Table2,
@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 
 export default function ExplorerPage() {
-  const { datasets, activeDataset, setActiveDataset, sessionId } =
+  const { datasets, activeDataset, setActiveDataset } =
     useAppContext();
   const [previewData, setPreviewData] = useState(null);
   const [loadingPreview, setLoadingPreview] = useState(false);
@@ -34,13 +34,9 @@ export default function ExplorerPage() {
     if (!activeDataset) return;
     setLoadingPreview(true);
     try {
-      const result = await sendQuery(
-        `Show the first 100 rows of all columns from ${activeDataset}`,
-        sessionId,
-        activeDataset
-      );
-      if (result.charts?.[0]?.data) {
-        setPreviewData(result.charts[0].data);
+      const result = await fetchPreview(activeDataset, 100);
+      if (result.data?.length) {
+        setPreviewData(result.data);
       }
     } catch {
       setPreviewData(null);

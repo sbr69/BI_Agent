@@ -47,3 +47,12 @@ export async function checkHealth() {
   const res = await fetch(`${API_BASE}/health`);
   return res.json();
 }
+
+export async function fetchPreview(dataset, limit = 100) {
+  const res = await fetch(`${API_BASE}/preview/${encodeURIComponent(dataset)}?limit=${limit}`);
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || "Preview failed");
+  }
+  return res.json();
+}

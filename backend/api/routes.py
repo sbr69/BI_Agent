@@ -13,7 +13,7 @@ from api.models import (
     UploadResponse, HealthResponse
 )
 from core.query_engine import query_engine
-from core.schema import get_schema_description, get_datasets_info
+from core.schema import get_schema_description, get_datasets_info, invalidate_schema_cache
 from core.llm import get_llm_client
 from core.prompts import get_system_prompt, get_followup_prompt
 
@@ -46,13 +46,16 @@ def _validate_session_id(session_id: str) -> str:
 @router.get("/health", response_model=HealthResponse)
 def health_check():
     """Health check endpoint."""
-    tables = query_engine.get_table_names()
-    total_rows = sum(query_engine.get_row_count(t) for t in tables)
-    return HealthResponse(
-        status="ok",
-        tables_loaded=len(tables),
-        total_rows=total_rows
-    )
+    try:
+        tables = query_engine.get_table_names()
+        total_rows = sum(query_engine.get_row_count(t) for t in tables)
+        return HealthResponse(
+            status="ok",
+            tables_loaded=len(tables),
+            total_rows=total_rows
+        )
+    except Exception:
+        return HealthResponse(status="error", tables_loaded=0, total_rows=0)
 
 
 @router.get("/datasets", response_model=DatasetsResponse)
@@ -215,6 +218,7 @@ def upload_csv(
 
         # Load into PostgreSQL via query engine
         actual_table_name = query_engine.load_csv(filepath, table_name)
+        invalidate_schema_cache(actual_table_name)
         info = query_engine.get_table_info(actual_table_name)
 
         return UploadResponse(
@@ -242,3 +246,38 @@ def clear_session(session_id: str):
     if session_id in _sessions:
         del _sessions[session_id]
     return {"message": "Session cleared"}
+
+
+@router.get("/preview/{dataset}")
+def preview_dataset(dataset: str, limit: int = 100):
+    """Return raw preview rows from a dataset without going through the LLM."""
+    tables = query_engine.get_table_names()
+    if dataset not in tables:
+        raise HTTPException(status_code=404, detail=f"Dataset '{dataset}' not found")
+
+    limit = min(max(1, limit), 500)
+
+    try:
+        from psycopg2 import sql as pgsql
+        conn = query_engine._get_conn()
+        try:
+            with conn.cursor() as cur:
+                cur.execute(
+                    pgsql.SQL("SELECT * FROM {} LIMIT %s").format(
+                        pgsql.Identifier(dataset)
+                    ),
+                    (limit,)
+                )
+                if not cur.description:
+                    return {"data": [], "columns": []}
+                columns = [desc[0] for desc in cur.description]
+                rows = cur.fetchall()
+                data = [
+                    {col: query_engine._convert_value(val) for col, val in zip(columns, row)}
+                    for row in rows
+                ]
+                return {"data": data, "columns": columns, "row_count": len(data)}
+        finally:
+            query_engine._put_conn(conn)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Preview error: {str(e)}")

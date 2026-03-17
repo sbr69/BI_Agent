@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Layout from "./components/layout/Layout";
 import DashboardPage from "./pages/DashboardPage";
 import QueryPage from "./pages/QueryPage";
@@ -18,6 +18,7 @@ function App() {
           <Route path="/history" element={<HistoryPage />} />
           <Route path="/upload" element={<UploadPage />} />
           <Route path="/settings" element={<SettingsPage />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
       </Routes>
     </BrowserRouter>
