@@ -244,8 +244,44 @@ class QueryEngine:
     # Statement timeout in milliseconds (prevents runaway queries)
     STATEMENT_TIMEOUT_MS = 30_000
 
-    def execute_query(self, sql: str) -> list[dict[str, Any]]:
-        """Execute a read-only SQL query and return results as list of dicts."""
+    # PostgreSQL functions that can leak server info or access the filesystem
+    _BLOCKED_FUNCTIONS = re.compile(
+        r"\b("
+        r"pg_read_file|pg_read_binary_file|pg_ls_dir|pg_stat_file"
+        r"|pg_ls_logdir|pg_ls_waldir|pg_ls_tmpdir|pg_ls_archive_statusdir"
+        r"|lo_import|lo_export|lo_get|lo_put|lo_from_bytea"
+        r"|inet_server_addr|inet_server_port|inet_client_addr|inet_client_port"
+        r"|current_setting|set_config"
+        r"|pg_terminate_backend|pg_cancel_backend|pg_reload_conf|pg_rotate_logfile"
+        r"|dblink|dblink_connect|dblink_exec|dblink_send_query"
+        r"|query_to_xml|query_to_json|xpath"
+        r")\s*\(",
+        re.IGNORECASE,
+    )
+
+    # System catalogs and internal tables that should never be queried
+    _BLOCKED_TABLES = re.compile(
+        r"\b("
+        r"pg_shadow|pg_authid|pg_auth_members|pg_roles|pg_user"
+        r"|pg_stat_activity|pg_stat_replication|pg_stat_ssl"
+        r"|pg_settings|pg_config|pg_hba_file_rules|pg_file_settings"
+        r"|pg_stat_statements|pg_stat_user_tables|pg_stat_user_indexes"
+        r"|pg_catalog\.\w+"
+        r"|pg_largeobject|pg_largeobject_metadata"
+        r"|pg_proc|pg_extension|pg_available_extensions"
+        r"|information_schema\.\w+"
+        r")\b",
+        re.IGNORECASE,
+    )
+
+    def execute_query(self, sql: str, allowed_tables: set[str] | None = None) -> list[dict[str, Any]]:
+        """Execute a read-only SQL query and return results as list of dicts.
+
+        Args:
+            sql: The SQL query to execute.
+            allowed_tables: If provided, the query is rejected unless it only
+                            references tables in this set (plus common CTEs).
+        """
         if not self._pool:
             raise RuntimeError("Query engine not initialized.")
 
@@ -279,6 +315,18 @@ class QueryEngine:
         if not (sql_upper.startswith("SELECT") or sql_upper.startswith("WITH")):
             raise ValueError("Only SELECT queries are allowed")
 
+        # Block dangerous PostgreSQL functions
+        if self._BLOCKED_FUNCTIONS.search(sql):
+            raise ValueError("Query contains a disallowed PostgreSQL function")
+
+        # Block access to system catalogs
+        if self._BLOCKED_TABLES.search(sql):
+            raise ValueError("Query references a disallowed system table")
+
+        # Enforce table allowlist: only permit queries against known user tables
+        if allowed_tables:
+            self._enforce_table_allowlist(sql, allowed_tables)
+
         conn = self._get_conn()
         try:
             with conn.cursor() as cur:
@@ -300,6 +348,33 @@ class QueryEngine:
             # Reset connection state so the pool connection is clean
             conn.rollback()
             self._put_conn(conn)
+
+    def _enforce_table_allowlist(self, sql: str, allowed_tables: set[str]):
+        """Reject queries referencing tables outside the allowed set."""
+        # Extract identifiers that appear after FROM or JOIN keywords
+        table_ref_pattern = re.compile(
+            r"\b(?:FROM|JOIN)\s+([a-zA-Z_][a-zA-Z0-9_]*)",
+            re.IGNORECASE,
+        )
+        referenced = {m.group(1).lower() for m in table_ref_pattern.finditer(sql)}
+        # Also catch schema-qualified references like public.tablename
+        schema_ref_pattern = re.compile(
+            r"\b(?:FROM|JOIN)\s+([a-zA-Z_][a-zA-Z0-9_]*)\.([a-zA-Z_][a-zA-Z0-9_]*)",
+            re.IGNORECASE,
+        )
+        for m in schema_ref_pattern.finditer(sql):
+            schema, table = m.group(1).lower(), m.group(2).lower()
+            if schema != "public":
+                raise ValueError(f"Queries against schema '{schema}' are not allowed")
+            referenced.add(table)
+
+        allowed_lower = {t.lower() for t in allowed_tables}
+        disallowed = referenced - allowed_lower
+        if disallowed:
+            raise ValueError(
+                f"Query references disallowed table(s): {', '.join(sorted(disallowed))}. "
+                f"Only these tables are allowed: {', '.join(sorted(allowed_lower))}"
+            )
 
     @staticmethod
     def _convert_value(val: Any) -> Any:

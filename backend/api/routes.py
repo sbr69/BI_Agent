@@ -174,9 +174,12 @@ def process_query(request: QueryRequest, req: Request):
     charts = []
     query_results = []
 
+    # Only allow queries against the target table (prevents cross-dataset exfiltration)
+    allowed_tables = {target_table}
+
     for q in llm_response.get("sql_queries", []):
         try:
-            result = query_engine.execute_query(q["sql"])
+            result = query_engine.execute_query(q["sql"], allowed_tables=allowed_tables)
             query_results.append(result)
         except Exception as e:
             query_results.append([])
@@ -236,7 +239,6 @@ def process_query(request: QueryRequest, req: Request):
             "queries_executed": len(query_results),
             "rows_returned": sum(len(r) for r in query_results),
             "session_id": session_id,
-            "sql_queries": llm_response.get("sql_queries", []),
         }
     )
 

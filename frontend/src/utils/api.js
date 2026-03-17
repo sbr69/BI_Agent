@@ -1,6 +1,15 @@
 const API_BASE = import.meta.env.VITE_API_BASE || 'http://127.0.0.1:8000/api';
+const API_KEY = import.meta.env.VITE_API_KEY || '';
+
+function authHeaders(extra = {}) {
+  const headers = { ...extra };
+  if (API_KEY) headers['X-API-Key'] = API_KEY;
+  return headers;
+}
 
 async function fetchWithRetry(url, options = {}, retries = 1) {
+  // Inject API key header into every request
+  options.headers = authHeaders(options.headers || {});
   try {
     const res = await fetch(url, options);
     if (!res.ok) {
