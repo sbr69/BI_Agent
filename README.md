@@ -1,151 +1,240 @@
 <p align="center">
-  <img src="https://img.shields.io/badge/🧠_BI_Dashboard_AI-Conversational_Intelligence-667eea?style=for-the-badge&labelColor=1a1b2e" alt="BI Dashboard AI" />
+  <img src="https://img.shields.io/badge/🧠_BI_Agent-Conversational_Intelligence-F97316?style=for-the-badge&labelColor=1a1b2e" alt="BI Agent" />
 </p>
 
-<h3 align="center">Turn plain-English questions into interactive data dashboards — in seconds.</h3>
+<h3 align="center">Ask questions in plain English. Get interactive dashboards in seconds.</h3>
 
 <p align="center">
   <img src="https://img.shields.io/badge/Python-3.11+-3776AB?style=flat-square&logo=python&logoColor=white" />
   <img src="https://img.shields.io/badge/React-19-61DAFB?style=flat-square&logo=react&logoColor=black" />
   <img src="https://img.shields.io/badge/FastAPI-0.115-009688?style=flat-square&logo=fastapi&logoColor=white" />
   <img src="https://img.shields.io/badge/Tailwind_CSS-v4-38BDF8?style=flat-square&logo=tailwindcss&logoColor=white" />
+  <img src="https://img.shields.io/badge/Supabase-PostgreSQL-3ECF8E?style=flat-square&logo=supabase&logoColor=white" />
   <img src="https://img.shields.io/badge/LLM-Llama_3.3_70B-FF6F00?style=flat-square&logo=meta&logoColor=white" />
   <img src="https://img.shields.io/badge/Groq-Inference-F55036?style=flat-square" />
 </p>
 
 <p align="center">
-  <a href="#-features">Features</a> •
-  <a href="#-architecture">Architecture</a> •
-  <a href="#-getting-started">Getting Started</a> •
-  <a href="#-example-queries">Example Queries</a> •
-  <a href="#-tech-stack">Tech Stack</a>
+  <a href="#-about-the-project">About</a> •
+  <a href="#-problem-statement">Problem</a> •
+  <a href="#-key-features">Features</a> •
+  <a href="#-system-architecture">Architecture</a> •
+  <a href="#-tech-stack">Tech Stack</a> •
+  <a href="#-getting-started">Setup</a> •
+  <a href="#-demo--example-queries">Demo</a> •
+  <a href="#-api-reference">API</a>
 </p>
 
 ---
 
 ## 📌 About The Project
 
-In today's data-driven world, accessing business insights often requires technical skills like SQL or navigating complex BI tools. This creates a bottleneck — data teams are overwhelmed with basic reporting requests, and business users wait days for simple dashboards.
+**BI Agent** is an AI-powered Business Intelligence platform that transforms natural language questions into fully interactive, data-driven dashboards. It combines the power of **Llama 3.3 70B** (via Groq) with a modern **React + FastAPI** stack and **Supabase PostgreSQL** to deliver real-time analytics — without requiring users to write a single line of SQL.
 
-**BI Dashboard AI** eliminates this bottleneck entirely. It allows non-technical users (CXOs, managers, analysts) to generate fully functional, interactive data dashboards using only natural language prompts. No SQL. No BI tool expertise. Just ask a question and get a dashboard.
+Upload any CSV dataset, ask a question in plain English, and receive **KPI cards, multi-chart dashboards, and AI-written narrative insights** in under 2 seconds.
 
-### How It Works
-
-```
-  "Show me monthly revenue trends for 2023 by product category"
-                              │
-                              ▼
-                    ┌──────────────────┐
-                    │  React Frontend  │  ← Natural language input + chart rendering
-                    └────────┬─────────┘
-                             │ HTTP POST /api/query
-                             ▼
-                    ┌──────────────────┐
-                    │  FastAPI Backend │  ← Routes, validation, session management
-                    └────────┬─────────┘
-                             │
-                             ▼
-                    ┌──────────────────┐
-                    │ Groq / Llama 3.3 │  ← Generates SQL + chart configuration
-                    └────────┬─────────┘
-                             │ JSON: {sql_queries, charts, insights}
-                             ▼
-                    ┌──────────────────┐
-                    │ SQLite (In-Mem)  │  ← Executes SQL safely on CSV data
-                    └────────┬─────────┘
-                             │ Query results
-                             ▼
-                    ┌──────────────────┐
-                    │Recharts Dashboard│  ← Bar, Line, Pie, Area, Scatter charts
-                    └──────────────────┘
-```
+> Built for the **GFG Hackathon 2026** — designed to democratize data analytics for non-technical stakeholders.
 
 ---
 
-## ✨ Features
+## 🎯 Problem Statement
 
-<table>
-  <tr>
-    <td width="50%">
+In organizations of every size, the gap between *having data* and *understanding data* remains painfully wide:
 
-**Natural Language Queries**
-Type any business question in plain English. The AI understands context, generates the right SQL, picks the best chart type, and renders an interactive dashboard — all in 1-2 seconds.
+| Pain Point | Impact |
+|---|---|
+| Business users depend on data teams for simple reports | Weeks of wait time for basic dashboards |
+| SQL and BI tool expertise required | Only ~15% of employees can self-serve analytics |
+| Static reports lack interactivity | Insights go stale before they reach decision-makers |
+| Setting up BI tools is complex and expensive | Small teams and startups are left behind |
 
-**Conversational Follow-ups**
-Ask follow-up questions to drill down, filter, or modify your dashboard. The system maintains conversation history per session.
-
-**CSV Upload**
-Drag & drop your own CSV datasets and start querying them immediately. No setup required.
-
-</td>
-<td width="50%">
-
-**Smart Chart Selection**
-The AI automatically selects the most appropriate chart type based on your question:
-- Time-series → Line / Area charts
-- Category comparison → Bar charts
-- Distribution / proportion → Pie charts
-- Correlation analysis → Scatter plots
-
-**Hallucination Prevention**
-The system refuses to fabricate data. Out-of-scope questions get a helpful error instead of made-up answers. SQL injection attempts are blocked. Write operations are prohibited.
-
-**Real-Time Performance**
-Powered by Groq's inference engine, dashboards are generated in ~1-2 seconds end-to-end.
-
-</td>
-  </tr>
-</table>
+**BI Agent solves all four.** Anyone — a CEO, a marketing manager, or a student — can upload a dataset and start getting insights immediately using nothing but natural language.
 
 ---
 
-## Architecture
+## ✨ Key Features
 
-The application follows a clean, layered pipeline architecture:
+### Core Intelligence
+
+| Feature | Description |
+|---|---|
+| **Natural Language → SQL → Charts** | The AI parses your question, generates PostgreSQL-compliant SQL, selects the optimal chart type, and renders an interactive dashboard — end to end. |
+| **Conversational Follow-ups** | Ask follow-up questions like *"now filter this to Asia only"* — the system maintains session context and modifies queries accordingly. |
+| **KPI Auto-Generation** | Every query response includes dynamically computed KPI cards (totals, averages, trends) with human-readable formatting ($1.24M, 8.3K). |
+| **AI-Written Insights** | The LLM generates narrative insights alongside charts, surfacing patterns and anomalies that raw data alone cannot convey. |
+| **Hallucination Prevention** | Out-of-scope questions receive informative errors. The LLM is schema-constrained — it cannot reference columns or tables that do not exist. |
+
+### Visualization & Dashboard
+
+| Feature | Description |
+|---|---|
+| **6 Chart Types** | Bar, Line, Pie, Area, Scatter, and interactive Data Tables — auto-selected based on query semantics. |
+| **Data Point Highlights** | The AI can annotate noteworthy data points (e.g., top region, outlier) with custom colors and labels directly on charts. |
+| **Dashboard Pinning** | Save any AI-generated dashboard for later review. Pins persist across sessions and are accessible from the main dashboard. |
+| **CSV/PDF Export** | Export chart data as CSV or generate PDF snapshots of the full dashboard. |
+| **Date Range Filtering** | Global date filter with presets (7 days, 30 days, quarter) that propagates to all AI-generated SQL queries. |
+| **Activity Heatmap** | GitHub-style heatmap showing query activity by weekday and hour across your session. |
+| **Data Coverage Gauges** | Visual gauge rings indicating dataset completeness and column richness. |
+
+### Data Management
+
+| Feature | Description |
+|---|---|
+| **CSV Upload** | Drag-and-drop any CSV file. The engine auto-detects column types (numeric, text, date), infers the schema, and loads it into Supabase PostgreSQL. |
+| **Multi-Dataset Support** | Upload multiple CSVs and switch between datasets from the global filter bar. Cross-dataset queries are isolated for security. |
+| **Data Explorer** | Browse dataset schemas, preview raw rows, and inspect column types without writing any queries. |
+| **Seed Script** | Bulk-import CSV files from the `data/` directory using `python seed.py` for quick setup. |
+
+### Platform & Security
+
+| Feature | Description |
+|---|---|
+| **User Authentication** | Sign up / sign in flow with profile management and protected routes. |
+| **Query History** | Full history of every query with timestamps, prompts, and results. Re-run or review past analyses. |
+| **Scheduled Reports** | Set up recurring reports with cron expressions and optional email delivery. |
+| **API Key Authentication** | Optional `X-API-Key` header authentication for all non-public endpoints. |
+| **Rate Limiting** | In-memory rate limiter (30 requests/minute per IP) to prevent abuse. |
+| **Read-Only SQL Enforcement** | `INSERT`, `UPDATE`, `DELETE`, `DROP`, and 20+ other destructive keywords are blocked at the engine level. |
+| **Function & Table Blocklists** | PostgreSQL system functions (`pg_read_file`, `dblink`, etc.) and catalog tables (`pg_shadow`, `pg_roles`, etc.) are explicitly blocked. |
+| **Statement Timeout** | 30-second query timeout to prevent runaway queries from consuming resources. |
+
+---
+
+## 🏗️ System Architecture
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                        FRONTEND (React 19)                      │
-│   ┌──────────┐ ┌──────────────┐ ┌──────────┐ ┌──────────────┐   │
-│   │ ChatInput│ │ChartRenderer │ │Dashboard │ │ FileUpload   │   │
-│   │          │ │(Bar/Line/Pie/│ │(Grid +   │ │(Drag & Drop) │   │
-│   │ + Example│ │ Area/Scatter)│ │ Metadata)│ │              │   │
-│   │  Prompts │ │              │ │          │ │              │   │
-│   └──────────┘ └──────────────┘ └──────────┘ └──────────────┘   │
-│  ┌──────────┐ ┌──────────────┐                                  │
-│  │  Chat    │ │  Loading     │    Tailwind v4 + Glassmorphism   │
-│  │ History  │ │  State       │    Dark Theme + Animations       │
-│  └──────────┘ └──────────────┘                                  │
-└──────────────────────────┬──────────────────────────────────────┘
-                           │ REST API (JSON)
-┌──────────────────────────▼──────────────────────────────────────┐
-│                       BACKEND (FastAPI)                         │
-│  ┌──────────────────────────────────────────────────────────┐   │
-│  │  API Layer: /health, /datasets, /query, /upload, /session│   │
-│  └──────────────────────────┬───────────────────────────────┘   │
-│                             │                                   │
-│  ┌──────────┐  ┌────────────▼────────┐  ┌──────────────────┐    │
-│  │ Prompts  │  │    LLM Client       │  │  Query Engine    │    │
-│  │ (System  │──│ (Groq / Llama 3.3)  │──│ (CSV → SQLite)   │    │
-│  │  + Rules)│  │  NL → SQL + Charts  │  │  Safe Execution  │    │
-│  └──────────┘  └─────────────────────┘  └──────────────────┘    │
-│                                                                 │
-│  ┌──────────────────────────────────────────────────────────┐   │
-│  │  Schema Introspector: auto-detects columns, types, stats │   │
-│  └──────────────────────────────────────────────────────────┘   │
-└─────────────────────────────────────────────────────────────────┘
+┌────────────────────────────────────────────────────────────────────────────┐
+│                         FRONTEND  (React 19 + Vite 8)                      │
+│                                                                            │
+│  ┌─────────┐  ┌────────────┐  ┌──────────┐  ┌───────────┐  ┌───────────┐  │
+│  │ Landing │  │  Dashboard │  │  Query   │  │  Explorer │  │  Upload   │  │
+│  │  Page   │  │    Page    │  │   Page   │  │   Page    │  │   Page    │  │
+│  └─────────┘  └────────────┘  └──────────┘  └───────────┘  └───────────┘  │
+│  ┌─────────┐  ┌────────────┐  ┌──────────┐                                │
+│  │  Login  │  │   Signup   │  │ History  │  Protected Routes + Layout      │
+│  │  Page   │  │    Page    │  │   Page   │  Sidebar + TopBar + Search      │
+│  └─────────┘  └────────────┘  └──────────┘                                │
+│                                                                            │
+│  Components: ChartRenderer · KPICards · DataTable · FileUpload             │
+│              InsightCard · LoadingState · Layout (Sidebar + TopBar)         │
+│  Styling:    Tailwind CSS v4 · Glassmorphism · Animations · Dark accents   │
+└───────────────────────────────┬────────────────────────────────────────────┘
+                                │  REST API (JSON)
+┌───────────────────────────────▼────────────────────────────────────────────┐
+│                         BACKEND  (FastAPI 0.115)                           │
+│                                                                            │
+│  ┌─────────────────────────────────────────────────────────────────────┐   │
+│  │  API Layer (19 endpoints)                                           │   │
+│  │  /health · /datasets · /query · /upload · /preview/{dataset}        │   │
+│  │  /export/chart-csv · /pins (CRUD) · /schedules (CRUD) · /session    │   │
+│  └─────────────────────────────┬───────────────────────────────────────┘   │
+│                                │                                           │
+│  ┌────────────┐  ┌─────────────▼──────────┐  ┌─────────────────────────┐  │
+│  │   Prompt   │  │      LLM Client        │  │     Query Engine        │  │
+│  │  Engineer  │──│  Groq / Llama 3.3 70B  │──│  CSV → PostgreSQL      │  │
+│  │  (System + │  │  NL → SQL + Charts     │  │  Connection Pooling    │  │
+│  │  Follow-up │  │  JSON Parsing          │  │  Read-Only Enforcement │  │
+│  │  Prompts)  │  │  KPI + Insight Gen     │  │  SQL Injection Guard   │  │
+│  └────────────┘  └────────────────────────┘  └─────────────────────────┘  │
+│                                                                            │
+│  ┌─────────────────────────────────────────────────────────────────────┐   │
+│  │  Schema Introspector: column names, types, sample values, ranges   │   │
+│  │  Cached (5 min TTL) · Auto-invalidates on new upload               │   │
+│  └─────────────────────────────────────────────────────────────────────┘   │
+│                                                                            │
+│  Middleware: CORS · API Key Auth · Rate Limiting (30 req/min)              │
+└───────────────────────────────┬────────────────────────────────────────────┘
+                                │
+┌───────────────────────────────▼────────────────────────────────────────────┐
+│                     SUPABASE  (PostgreSQL)                                  │
+│  Managed cloud database · Connection pooling · Row-level security          │
+└────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Data Flow
+
+```
+User types: "Show monthly revenue by category for 2023"
+    │
+    ▼
+[ React Frontend ] ──POST /api/query──▶ [ FastAPI Backend ]
+                                              │
+                                    ┌─────────▼──────────┐
+                                    │ Schema Introspector │
+                                    │ (column names,      │
+                                    │  types, samples)    │
+                                    └─────────┬──────────┘
+                                              │ schema context
+                                    ┌─────────▼──────────┐
+                                    │ Prompt Builder      │
+                                    │ (system + history   │
+                                    │  + date filters)    │
+                                    └─────────┬──────────┘
+                                              │ structured prompt
+                                    ┌─────────▼──────────┐
+                                    │ Groq API            │
+                                    │ Llama 3.3 70B       │
+                                    │ (~500ms inference)  │
+                                    └─────────┬──────────┘
+                                              │ JSON: {sql_queries, charts, kpis, insights}
+                                    ┌─────────▼──────────┐
+                                    │ Query Engine        │
+                                    │ Validates SQL       │
+                                    │ Executes on PgSQL   │
+                                    │ Returns results     │
+                                    └─────────┬──────────┘
+                                              │ chart data + KPI values
+    ┌─────────────────────────────────────────▼─────┐
+    │ Frontend renders: KPI cards + Charts + Insights │
+    └───────────────────────────────────────────────┘
 ```
 
 ### Key Design Decisions
 
 | Decision | Rationale |
 |---|---|
-| **In-memory SQLite** | Zero-config, fast queries on CSV data without a database server |
-| **Groq + Llama 3.3 70B** | Blazing fast inference (~500ms), high-quality SQL generation, free tier available |
-| **Schema-aware prompts** | LLM receives column names, types, and sample values to generate accurate SQL |
-| **Read-only SQL enforcement** | Write operations (INSERT, UPDATE, DELETE, DROP) are blocked at the engine level |
-| **Session-based context** | Follow-up queries work by passing conversation history to the LLM |
-| **Chart type rules in prompt** | Explicit rules (time→line, category→bar) ensure consistent chart selection |
+| **Supabase PostgreSQL** | Managed cloud database with connection pooling — eliminates DB ops overhead while supporting full SQL expressiveness. |
+| **Groq + Llama 3.3 70B** | ~500ms inference, high-quality SQL generation, and a generous free tier. Outperforms GPT-3.5 on structured output tasks. |
+| **Schema-aware prompting** | The LLM receives column names, types, sample values, and unique value enumerations — dramatically reducing hallucination. |
+| **Threaded connection pool** | `psycopg2.ThreadedConnectionPool(1, 10)` ensures concurrent queries don't block each other while limiting DB connections. |
+| **Read-only + table allowlist** | Defense-in-depth: 20+ blocked keywords, function blocklist, system catalog blocklist, and per-query table allowlist. |
+| **Session-based follow-ups** | Last 5 conversation entries are injected into follow-up prompts, enabling multi-turn analytical sessions. |
+| **Chart type rules in prompt** | Explicit mapping (time → line, category → bar, distribution → pie) ensures deterministic, appropriate visualizations. |
+
+---
+
+## 🛠️ Tech Stack
+
+### Frontend
+
+| Technology | Version | Purpose |
+|---|---|---|
+| React | 19 | Component architecture, state management |
+| Vite | 8 | Build tooling, HMR, dev server |
+| Tailwind CSS | v4 | Utility-first styling with `@theme` tokens |
+| Recharts | 3.8 | Declarative, responsive chart library |
+| React Router | v7 | Client-side routing, protected routes |
+| Lucide React | 0.577 | Lightweight, tree-shakable icon set |
+| html2canvas + jsPDF | — | Client-side PDF export |
+| @hello-pangea/dnd | 18 | Drag-and-drop interactions |
+
+### Backend
+
+| Technology | Version | Purpose |
+|---|---|---|
+| FastAPI | 0.115 | Async API framework with auto-docs |
+| Uvicorn | 0.34 | ASGI server |
+| psycopg2 | 2.9 | PostgreSQL adapter with connection pooling |
+| Groq SDK | 0.25 | LLM inference client |
+| Pydantic | v2 | Request/response validation |
+| python-dotenv | 1.0 | Environment variable management |
+
+### Infrastructure
+
+| Service | Purpose |
+|---|---|
+| Supabase | Managed PostgreSQL database (cloud) |
+| Groq Cloud | LLM inference API |
 
 ---
 
@@ -154,115 +243,99 @@ The application follows a clean, layered pipeline architecture:
 ```
 BI_Agent/
 │
-├── README.md                        # Project documentation
-├── .gitignore                       # Git ignore rules
-├── Amazon Sales.csv                 # Original dataset (50K rows)
+├── README.md
+├── .gitignore
 │
-├── backend/                         # Python FastAPI backend
-│   ├── main.py                         # App entry point + lifespan
-│   ├── requirements.txt                # Python dependencies
-│   ├── .env.example                    # Environment variable template
+├── backend/                          # Python FastAPI backend
+│   ├── main.py                          # App entry + lifespan + middleware
+│   ├── requirements.txt                 # Python dependencies
+│   ├── seed.py                          # Bulk CSV import script
+│   ├── .env.example                     # Environment variable template
 │   │
-│   ├── core/                           # Business logic
-│   │   ├── __init__.py
-│   │   ├── llm.py                      # Groq API client + JSON parser
-│   │   │                                 → Sends schema + prompt to Llama 3.3
-│   │   │                                 → Parses JSON response (SQL + charts)
-│   │   │                                 → Validates chart types and structure
-│   │   │
-│   │   ├── query_engine.py             # Data engine
-│   │   │                                 → Loads CSVs into in-memory SQLite
-│   │   │                                 → Handles binary preamble detection
-│   │   │                                 → Blocks write/destructive SQL
-│   │   │                                 → Executes queries safely
-│   │   │
-│   │   ├── schema.py                   # Schema introspector
-│   │   │                                 → Auto-detects column names & types
-│   │   │                                 → Generates schema descriptions for LLM
-│   │   │
-│   │   └── prompts.py                  # Prompt engineering
-│   │                                     → System prompt with chart rules
-│   │                                     → Follow-up prompt with history
-│   │                                     → Hallucination prevention guards
+│   ├── core/                            # Business logic layer
+│   │   ├── llm.py                          # Groq API client, JSON extraction, response validation
+│   │   ├── query_engine.py                 # PostgreSQL connection pooling, CSV loader, SQL executor
+│   │   ├── schema.py                       # Schema introspector with 5-min cache
+│   │   └── prompts.py                      # System + follow-up prompt templates
 │   │
-│   ├── api/                            # REST API layer
-│   │   ├── __init__.py
-│   │   ├── routes.py                   # Endpoint handlers
-│   │   │                                 → GET  /api/health
-│   │   │                                 → GET  /api/datasets
-│   │   │                                 → POST /api/query
-│   │   │                                 → POST /api/upload
-│   │   │                                 → DEL  /api/session/{id}
-│   │   │
-│   │   └── models.py                   # Pydantic request/response schemas
+│   ├── api/                             # REST API layer
+│   │   ├── routes.py                       # 19 endpoint handlers
+│   │   └── models.py                       # Pydantic request/response schemas
 │   │
-│   ├── data/                           # Pre-loaded datasets
-│   │   └── Amazon Sales.csv
+│   ├── data/                            # Pre-loaded sample datasets
+│   │   └── Amazon Sales.csv                # 50K e-commerce transactions
 │   │
-│   └── uploads/                        # User-uploaded CSVs (gitignored)
+│   └── uploads/                         # User-uploaded CSVs (gitignored)
 │
-└── frontend/                        # React + Vite frontend
-    ├── index.html                      # Entry HTML (Inter font + meta)
-    ├── package.json                    # Node dependencies
-    ├── postcss.config.js               # Tailwind v4 PostCSS setup
-    ├── vite.config.js                  # Vite configuration
+└── frontend/                         # React + Vite frontend
+    ├── index.html                       # Entry HTML
+    ├── package.json                     # Node dependencies
+    ├── vite.config.js                   # Vite configuration
     │
     └── src/
-        ├── main.jsx                    # React root
-        ├── App.jsx                     # Root component
-        │                                → State management (session, datasets)
-        │                                → API integration + error handling
-        │                                → Layout: header, hero, chat, dashboard
+        ├── App.jsx                      # Root component + routing
+        ├── main.jsx                     # React DOM root
+        ├── index.css                    # Tailwind v4 design system
         │
-        ├── index.css                   # Design system
-        │                                → Tailwind v4 @theme tokens
-        │                                → Custom @utility classes (glass, shimmer)
-        │                                → Animations (fade-in, pulse-glow)
-        │                                → Recharts style overrides
+        ├── pages/
+        │   ├── LandingPage.jsx             # Marketing landing page
+        │   ├── LoginPage.jsx               # Authentication - sign in
+        │   ├── SignupPage.jsx              # Authentication - sign up
+        │   ├── DashboardPage.jsx           # Main analytics dashboard (1200+ lines)
+        │   ├── QueryPage.jsx               # AI query interface
+        │   ├── ExplorerPage.jsx            # Dataset schema browser
+        │   ├── HistoryPage.jsx             # Query history viewer
+        │   ├── UploadPage.jsx              # CSV upload interface
+        │   └── ProfilePage.jsx             # User profile management
         │
         ├── components/
-        │   ├── ChatInput.jsx           # NL input + 6 example prompts
-        │   ├── ChartRenderer.jsx       # Dynamic chart factory
-        │   │                             → Bar, Line, Pie, Area, Scatter
-        │   │                             → Auto-pivots grouped data
-        │   │                             → Custom dark-themed tooltips
-        │   ├── Dashboard.jsx           # Dashboard container + metadata bar
-        │   ├── InsightCard.jsx         # AI insights with contextual icons
-        │   ├── LoadingState.jsx        # Animated loading (brain + skeleton)
-        │   ├── FileUpload.jsx          # Drag-and-drop CSV upload
-        │   └── ChatHistory.jsx         # Conversation thread display
+        │   ├── ChartRenderer.jsx           # Dynamic chart factory (6 types)
+        │   ├── KPICards.jsx                # KPI card strip with trends
+        │   ├── DataTable.jsx               # Interactive data table
+        │   ├── FileUpload.jsx              # Drag-and-drop CSV upload
+        │   ├── InsightCard.jsx             # AI insight display
+        │   ├── LoadingState.jsx            # Animated skeleton loader
+        │   ├── ProtectedRoute.jsx          # Auth route guard
+        │   ├── RootRedirect.jsx            # Auth-based root redirect
+        │   └── layout/
+        │       ├── Layout.jsx                 # App shell + context provider
+        │       ├── Sidebar.jsx                # Navigation sidebar
+        │       └── TopBar.jsx                 # Top bar with search + filters
         │
         └── utils/
-            ├── api.js                  # HTTP client (query, datasets, upload)
-            └── chartHelpers.js         # Colors, data pivot, number formatting
+            ├── api.js                      # HTTP client (query, datasets, upload, export)
+            ├── chartHelpers.js             # Color palettes, data pivot, number formatting
+            └── constants.js                # Example prompts, profile helpers
 ```
 
 ---
 
-## Getting Started
+## 🚀 Getting Started
 
 ### Prerequisites
 
 | Tool | Version | Purpose |
 |---|---|---|
 | Python | 3.11+ | Backend runtime |
-| Node.js | 18+ | Frontend tooling |
+| Node.js | 18+ | Frontend build tooling |
 | Groq API Key | Free | LLM inference ([console.groq.com](https://console.groq.com/)) |
+| Supabase Project | Free | PostgreSQL database ([supabase.com](https://supabase.com/)) |
 
-### Installation
+### 1. Clone the Repository
 
-**1. Clone the repository**
 ```bash
 git clone https://github.com/sbr69/BI_Agent.git
 cd BI_Agent
 ```
 
-**2. Backend setup**
+### 2. Backend Setup
+
 ```bash
 cd backend
 
 # Create and activate virtual environment
 python -m venv .venv
+
 # Windows:
 .venv\Scripts\activate
 # macOS/Linux:
@@ -273,15 +346,33 @@ pip install -r requirements.txt
 
 # Configure environment
 cp .env.example .env
-# Edit .env → add your Groq API key:
-#   GROQ_API_KEY=gsk_your_key_here
+```
 
-# Start the server
+Edit `.env` with your credentials:
+
+```env
+GROQ_API_KEY=gsk_your_groq_api_key_here
+SUPABASE_DB_URL=postgresql://postgres.xxxx:password@aws-0-region.pooler.supabase.com:6543/postgres
+CORS_ORIGINS=http://localhost:5173,http://127.0.0.1:5173
+BI_API_KEY=your_optional_api_key
+```
+
+Seed the database with sample data (one-time):
+
+```bash
+python seed.py
+```
+
+Start the backend server:
+
+```bash
 python -m uvicorn main:app --reload --port 8000
 ```
-> You should see: `Loaded 1 table(s) with 50,000 total rows`
 
-**3. Frontend setup**
+> You should see: `Connected to Supabase. Found 1 table(s).`
+
+### 3. Frontend Setup
+
 ```bash
 cd frontend
 
@@ -291,78 +382,32 @@ npm install
 # Start dev server
 npm run dev
 ```
+
 > You should see: `VITE ready — Local: http://localhost:5173/`
 
-**4. Open the app**
+### 4. Open the App
 
-Navigate to **http://localhost:5173** and start asking questions!
-
----
-
-## Example Queries
-
-<table>
-<tr>
-<th>Complexity</th>
-<th>Prompt</th>
-<th>Output</th>
-</tr>
-<tr>
-<td>Simple</td>
-<td><code>Show me total revenue by customer region</code></td>
-<td>Bar chart → 4 regions (~$8M each)</td>
-</tr>
-<t
-<td>Simple</td>
-<td><code>What's the most popular payment method?</code></td>
-<td>Bar chart → payment method distribution</td>
-</tr>
-<tr>
-<td>Medium</td>
-<td><code>Monthly sales trends for 2023 by product category</code></td>
-<td>Multi-line chart → 6 categories × 12 months</td>
-</tr>
-<tr>
-<td>Medium</td>
-<td><code>Average rating by product category and region</code></td>
-<td>Grouped bar chart → 24 data points</td>
-</tr>
-<tr>
-<td>Complex</td>
-<td><code>Compare monthly revenue for Electronics vs Fashion in 2023 and show growth</code></td>
-<td>2 charts: line (trends) + bar (growth)</td>
-</tr>
-<tr>
-<td>Follow-up</td>
-<td><code>Now filter this to only show Asia and Europe</code></td>
-<td>AI modifies previous query → filtered results</td>
-</tr>
-<tr>
-<td>Error</td>
-<td><code>What is the weather today?</code></td>
-<td>Graceful error: "dataset doesn't contain weather data"</td>
-</tr>
-</table>
+Navigate to **http://localhost:5173** — sign up, upload a dataset, and start asking questions.
 
 ---
 
-## 🛠️ Tech Stack
+## 🎬 Demo & Example Queries
 
-| Layer | Technology | Why |
+| Complexity | Prompt | Expected Output |
 |---|---|---|
-| **Frontend** | React 19 + Vite 8 | Component-based, fast HMR, modern tooling |
-| **Styling** | Tailwind CSS v4 | Utility-first, `@theme` tokens, `@utility` custom classes |
-| **Charts** | Recharts | Declarative, responsive, React-native chart library |
-| **Icons** | Lucide React | Lightweight, tree-shakable icon set |
-| **Backend** | FastAPI | Async, auto-docs, Pydantic validation |
-| **LLM** | Groq API (Llama 3.3 70B) | Fast inference (~500ms), high-quality SQL generation |
-| **Data** | Pandas + SQLite | CSV parsing + in-memory SQL execution |
+| Simple | `Show me total revenue by customer region` | Bar chart with 4 regions + KPI cards |
+| Simple | `What's the most popular payment method?` | Bar chart showing payment method distribution |
+| Medium | `Monthly sales trends for 2023 by product category` | Multi-line chart — 6 categories × 12 months |
+| Medium | `Average rating by product category and region` | Grouped bar chart with 24 data points |
+| Complex | `Compare monthly revenue for Electronics vs Fashion in 2023 and show growth` | 2 charts: line (trends) + bar (growth %) |
+| Follow-up | `Now filter this to only show Asia and Europe` | AI modifies previous SQL → filtered results |
+| Out-of-scope | `What is the weather today?` | Graceful error: *"This dataset doesn't contain weather data"* |
 
 ---
 
-## 📊 Dataset
+## 📊 Sample Dataset
 
-The app comes pre-loaded with an **Amazon E-Commerce Sales** dataset containing **50,000 transactions** spanning 2022–2023.
+The project includes a pre-loaded **Amazon E-Commerce Sales** dataset with **50,000 transactions** spanning 2022–2023.
 
 | Column | Type | Description |
 |---|---|---|
@@ -380,32 +425,52 @@ The app comes pre-loaded with an **Amazon E-Commerce Sales** dataset containing 
 | `discounted_price` | Float | Price after discount |
 | `total_revenue` | Float | Final revenue (discounted_price × quantity) |
 
-> You can upload your own CSV via the **Upload CSV** button in the header.
+> You can upload your own CSV files via the **Upload** page to start querying custom datasets.
 
 ---
 
-## Safety & Security
+## 🔒 Security Model
 
-| Protection | Implementation |
+BI Agent implements defense-in-depth to ensure data safety even when an LLM is generating SQL:
+
+| Layer | Protection |
 |---|---|
-| **Read-only SQL** | `INSERT`, `UPDATE`, `DELETE`, `DROP`, `ALTER` are blocked at the query engine level |
-| **SQL injection** | LLM output is validated; destructive patterns are rejected before execution |
-| **Schema validation** | LLM only generates SQL using columns that actually exist in the dataset |
-| **No hallucination** | Out-of-scope questions return helpful errors instead of fabricated answers |
-| **Input validation** | All API requests are validated via Pydantic models |
-| **CORS** | Configured for local development; restrict origins for production |
+| **Keyword Blocklist** | 20+ SQL keywords blocked: `INSERT`, `UPDATE`, `DELETE`, `DROP`, `ALTER`, `TRUNCATE`, `GRANT`, `EXECUTE`, `DO`, etc. |
+| **Function Blocklist** | Dangerous PostgreSQL functions blocked: `pg_read_file`, `dblink`, `lo_import`, `set_config`, `pg_terminate_backend`, etc. |
+| **System Table Blocklist** | Access to `pg_shadow`, `pg_roles`, `pg_settings`, `information_schema`, and other catalog tables is denied. |
+| **Table Allowlist** | Each query is restricted to only the target dataset — no cross-dataset data exfiltration is possible. |
+| **SELECT-Only Enforcement** | Queries must begin with `SELECT` or `WITH`. Compound statements (containing `;`) are rejected. |
+| **Read-Only Transactions** | `SET LOCAL default_transaction_read_only = ON` is set before every query execution. |
+| **Statement Timeout** | 30-second timeout (`SET LOCAL statement_timeout`) prevents runaway queries. |
+| **Result Row Cap** | Maximum 10,000 rows per query to prevent memory exhaustion. |
+| **Input Validation** | All API requests are validated via Pydantic models with field constraints. |
+| **Rate Limiting** | 30 requests per minute per IP address. |
+| **CORS** | Configured for local development; restrict origins for production. |
+| **API Key Auth** | Optional `X-API-Key` middleware for endpoint-level authentication. |
 
 ---
 
-## API Reference
+## 📡 API Reference
+
+Base URL: `http://localhost:8000/api`
 
 | Method | Endpoint | Description |
 |---|---|---|
-| `GET` | `/api/health` | Server status, loaded tables, total rows |
-| `GET` | `/api/datasets` | List all datasets with schema info |
-| `POST` | `/api/query` | Process natural language query → dashboard JSON |
-| `POST` | `/api/upload` | Upload a CSV file to query |
-| `DELETE` | `/api/session/{id}` | Clear conversation history for a session |
+| `GET` | `/health` | Server status, loaded tables, total rows |
+| `GET` | `/datasets` | List all datasets with schema info |
+| `POST` | `/query` | Process natural language query → dashboard JSON |
+| `POST` | `/upload` | Upload a CSV file to query |
+| `GET` | `/preview/{dataset}` | Preview raw rows from a dataset (max 500) |
+| `POST` | `/export/chart-csv` | Export chart data as downloadable CSV |
+| `POST` | `/pins` | Save/pin a dashboard |
+| `GET` | `/pins` | List all pinned dashboards |
+| `DELETE` | `/pins/{pin_id}` | Remove a pinned dashboard |
+| `POST` | `/schedules` | Create a scheduled report |
+| `GET` | `/schedules` | List all schedules |
+| `DELETE` | `/schedules/{id}` | Remove a schedule |
+| `POST` | `/schedules/{id}/toggle` | Toggle schedule active/inactive |
+| `GET` | `/session/{session_id}` | Get conversation history |
+| `DELETE` | `/session/{session_id}` | Clear conversation history |
 
 ### POST `/api/query` — Request
 
@@ -413,7 +478,9 @@ The app comes pre-loaded with an **Amazon E-Commerce Sales** dataset containing 
 {
   "prompt": "Show me total revenue by region",
   "session_id": "optional_session_id",
-  "dataset": "amazon_sales"
+  "dataset": "amazon_sales",
+  "date_from": "2023-01-01",
+  "date_to": "2023-12-31"
 }
 ```
 
@@ -425,21 +492,26 @@ The app comes pre-loaded with an **Amazon E-Commerce Sales** dataset containing 
     {
       "type": "bar",
       "title": "Total Revenue by Customer Region",
-      "description": "Revenue across 4 regions",
+      "description": "Revenue distribution across 4 regions",
       "data": [
         { "customer_region": "Asia", "total_rev": 8175199.83 },
         { "customer_region": "Europe", "total_rev": 8112311.57 }
       ],
       "xKey": "customer_region",
       "yKeys": ["total_rev"],
-      "groupBy": null,
-      "colorScheme": "default"
+      "highlights": [
+        { "value": "Asia", "color": "#22C55E", "label": "Top Region" }
+      ]
     }
   ],
-  "insights": [
-    "Asia has the highest total revenue among all regions"
+  "kpis": [
+    { "label": "Total Revenue", "value": "$32.4M", "trend": "up" },
+    { "label": "Avg. Order Value", "value": "$149.20", "trend": "neutral" }
   ],
-  "error": null,
+  "insights": [
+    "Asia leads with the highest total revenue among all regions.",
+    "Revenue is evenly distributed — no single region dominates."
+  ],
   "metadata": {
     "query_time_ms": 787,
     "dataset": "amazon_sales",
@@ -452,4 +524,20 @@ The app comes pre-loaded with an **Amazon E-Commerce Sales** dataset containing 
 
 ---
 
+## 🤝 Team
 
+| Member | Role |
+|---|---|
+| **sbr69** | Full-Stack Developer & AI Integration |
+
+---
+
+## 📜 License
+
+This project is built for the **GFG Hackathon 2026**. All rights reserved.
+
+---
+
+<p align="center">
+  <sub>Built with React, FastAPI, Supabase, and Llama 3.3 70B via Groq.</sub>
+</p>
