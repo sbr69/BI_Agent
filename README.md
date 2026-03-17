@@ -106,17 +106,17 @@ In organizations of every size, the gap between *having data* and *understanding
 ┌────────────────────────────────────────────────────────────────────────────┐
 │                         FRONTEND  (React 19 + Vite 8)                      │
 │                                                                            │
-│  ┌─────────┐  ┌────────────┐  ┌──────────┐  ┌───────────┐  ┌───────────┐  │
-│  │ Landing │  │  Dashboard │  │  Query   │  │  Explorer │  │  Upload   │  │
-│  │  Page   │  │    Page    │  │   Page   │  │   Page    │  │   Page    │  │
-│  └─────────┘  └────────────┘  └──────────┘  └───────────┘  └───────────┘  │
-│  ┌─────────┐  ┌────────────┐  ┌──────────┐                                │
+│  ┌─────────┐  ┌────────────┐  ┌──────────┐  ┌───────────┐  ┌───────────┐   │
+│  │ Landing │  │  Dashboard │  │  Query   │  │  Explorer │  │  Upload   │   │
+│  │  Page   │  │    Page    │  │   Page   │  │   Page    │  │   Page    │   │
+│  └─────────┘  └────────────┘  └──────────┘  └───────────┘  └───────────┘   │
+│  ┌─────────┐  ┌────────────┐  ┌──────────┐                                 │
 │  │  Login  │  │   Signup   │  │ History  │  Protected Routes + Layout      │
 │  │  Page   │  │    Page    │  │   Page   │  Sidebar + TopBar + Search      │
-│  └─────────┘  └────────────┘  └──────────┘                                │
+│  └─────────┘  └────────────┘  └──────────┘                                 │
 │                                                                            │
 │  Components: ChartRenderer · KPICards · DataTable · FileUpload             │
-│              InsightCard · LoadingState · Layout (Sidebar + TopBar)         │
+│              InsightCard · LoadingState · Layout (Sidebar + TopBar)        │
 │  Styling:    Tailwind CSS v4 · Glassmorphism · Animations · Dark accents   │
 └───────────────────────────────┬────────────────────────────────────────────┘
                                 │  REST API (JSON)
@@ -129,24 +129,24 @@ In organizations of every size, the gap between *having data* and *understanding
 │  │  /export/chart-csv · /pins (CRUD) · /schedules (CRUD) · /session    │   │
 │  └─────────────────────────────┬───────────────────────────────────────┘   │
 │                                │                                           │
-│  ┌────────────┐  ┌─────────────▼──────────┐  ┌─────────────────────────┐  │
-│  │   Prompt   │  │      LLM Client        │  │     Query Engine        │  │
-│  │  Engineer  │──│  Groq / Llama 3.3 70B  │──│  CSV → PostgreSQL      │  │
-│  │  (System + │  │  NL → SQL + Charts     │  │  Connection Pooling    │  │
-│  │  Follow-up │  │  JSON Parsing          │  │  Read-Only Enforcement │  │
-│  │  Prompts)  │  │  KPI + Insight Gen     │  │  SQL Injection Guard   │  │
-│  └────────────┘  └────────────────────────┘  └─────────────────────────┘  │
+│  ┌────────────┐  ┌─────────────▼──────────┐  ┌─────────────────────────┐   │
+│  │   Prompt   │  │      LLM Client        │  │     Query Engine        │   │
+│  │  Engineer  │──│  Groq / Llama 3.3 70B  │──│  CSV → PostgreSQL       │   │
+│  │  (System + │  │  NL → SQL + Charts     │  │  Connection Pooling     │   │
+│  │  Follow-up │  │  JSON Parsing          │  │  Read-Only Enforcement  │   │
+│  │  Prompts)  │  │  KPI + Insight Gen     │  │  SQL Injection Guard    │   │
+│  └────────────┘  └────────────────────────┘  └─────────────────────────┘   │
 │                                                                            │
 │  ┌─────────────────────────────────────────────────────────────────────┐   │
-│  │  Schema Introspector: column names, types, sample values, ranges   │   │
-│  │  Cached (5 min TTL) · Auto-invalidates on new upload               │   │
+│  │  Schema Introspector: column names, types, sample values, ranges    │   │
+│  │  Cached (5 min TTL) · Auto-invalidates on new upload                │   │
 │  └─────────────────────────────────────────────────────────────────────┘   │
 │                                                                            │
 │  Middleware: CORS · API Key Auth · Rate Limiting (30 req/min)              │
 └───────────────────────────────┬────────────────────────────────────────────┘
                                 │
 ┌───────────────────────────────▼────────────────────────────────────────────┐
-│                     SUPABASE  (PostgreSQL)                                  │
+│                     SUPABASE  (PostgreSQL)                                 │
 │  Managed cloud database · Connection pooling · Row-level security          │
 └────────────────────────────────────────────────────────────────────────────┘
 ```
@@ -160,35 +160,35 @@ User types: "Show monthly revenue by category for 2023"
 [ React Frontend ] ──POST /api/query──▶ [ FastAPI Backend ]
                                               │
                                     ┌─────────▼──────────┐
-                                    │ Schema Introspector │
-                                    │ (column names,      │
-                                    │  types, samples)    │
+                                    │ Schema Introspector│
+                                    │ (column names,     │
+                                    │  types, samples)   │
                                     └─────────┬──────────┘
                                               │ schema context
                                     ┌─────────▼──────────┐
-                                    │ Prompt Builder      │
-                                    │ (system + history   │
-                                    │  + date filters)    │
+                                    │ Prompt Builder     │
+                                    │ (system + history  │
+                                    │  + date filters)   │
                                     └─────────┬──────────┘
                                               │ structured prompt
                                     ┌─────────▼──────────┐
-                                    │ Groq API            │
-                                    │ Llama 3.3 70B       │
-                                    │ (~500ms inference)  │
+                                    │ Groq API           │
+                                    │ Llama 3.3 70B      │
+                                    │ (~500ms inference) │
                                     └─────────┬──────────┘
                                               │ JSON: {sql_queries, charts, kpis, insights}
                                     ┌─────────▼──────────┐
-                                    │ Query Engine        │
-                                    │ Validates SQL       │
-                                    │ Executes on PgSQL   │
-                                    │ Returns results     │
+                                    │ Query Engine       │
+                                    │ Validates SQL      │
+                                    │ Executes on PgSQL  │
+                                    │ Returns results    │
                                     └─────────┬──────────┘
                                               │ chart data + KPI values
-    ┌─────────────────────────────────────────▼─────┐
+    ┌─────────────────────────────────────────▼───────┐
     │ Frontend renders: KPI cards + Charts + Insights │
-    └───────────────────────────────────────────────┘
+    └─────────────────────────────────────────────────┘
 ```
-
+  
 ### Key Design Decisions
 
 | Decision | Rationale |
