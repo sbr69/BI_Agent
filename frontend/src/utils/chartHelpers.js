@@ -1,15 +1,15 @@
-// Chart color palette
+// Chart color palette (orange-first for brand consistency)
 export const CHART_COLORS = [
-  "#667eea",
-  "#4fd1c5",
-  "#f093fb",
-  "#fbbf24",
-  "#34d399",
-  "#f87171",
-  "#a78bfa",
-  "#fb923c",
-  "#38bdf8",
-  "#e879f9",
+  "#F97316",
+  "#3B82F6",
+  "#22C55E",
+  "#8B5CF6",
+  "#EC4899",
+  "#14B8A6",
+  "#F59E0B",
+  "#6366F1",
+  "#EF4444",
+  "#06B6D4",
 ];
 
 /**

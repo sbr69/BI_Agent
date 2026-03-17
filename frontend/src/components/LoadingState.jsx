@@ -12,7 +12,7 @@ export default function LoadingState() {
   return (
     <div className="w-full max-w-3xl mx-auto animate-fade-in">
       {/* Main Loading Card */}
-      <div className="glass rounded-2xl p-8 text-center">
+      <div className="card p-8 text-center">
         {/* Animated Icon */}
         <div className="relative mx-auto w-16 h-16 mb-6">
           <div className="absolute inset-0 rounded-full border-2 border-primary/20 animate-spin-slow" />
@@ -48,7 +48,7 @@ export default function LoadingState() {
       {/* Skeleton Charts */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
         {[1, 2].map((i) => (
-          <div key={i} className="glass rounded-2xl p-5">
+          <div key={i} className="card p-5">
             <div className="h-4 w-48 rounded animate-shimmer mb-4" />
             <div className="h-[250px] rounded-lg animate-shimmer" />
           </div>

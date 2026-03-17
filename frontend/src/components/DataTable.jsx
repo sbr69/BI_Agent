@@ -87,10 +87,10 @@ export default function DataTable({ data, title }) {
   if (!data?.length) return null;
 
   return (
-    <div className="glass rounded-2xl p-5 animate-fade-in-up overflow-hidden">
+    <div className="animate-fade-in-up overflow-hidden">
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-semibold text-text-primary">
+        <h3 className="text-sm font-semibold text-text-primary">
           {title || "Data Table"}
         </h3>
         <div className="flex items-center gap-3 text-xs text-text-muted">
@@ -107,11 +107,11 @@ export default function DataTable({ data, title }) {
       </div>
 
       {/* Table */}
-      <div className="overflow-x-auto rounded-xl border border-border/50">
+      <div className="overflow-x-auto rounded-xl border border-border">
         <table className="w-full text-sm">
           <thead>
             {/* Sort headers */}
-            <tr className="border-b border-border/50 bg-surface-light/50">
+            <tr className="border-b border-border bg-surface-light">
               {columns.map((col) => (
                 <th
                   key={col}
@@ -130,7 +130,7 @@ export default function DataTable({ data, title }) {
               ))}
             </tr>
             {/* Filter row */}
-            <tr className="border-b border-border/30 bg-surface-light/30">
+            <tr className="border-b border-border bg-surface-light/50">
               {columns.map((col) => (
                 <th key={`filter-${col}`} className="px-3 py-2">
                   <div className="relative">
@@ -140,7 +140,7 @@ export default function DataTable({ data, title }) {
                       value={filters[col] || ""}
                       onChange={(e) => handleFilter(col, e.target.value)}
                       placeholder="Filter..."
-                      className="w-full bg-surface border border-border/50 rounded-md pl-6 pr-2 py-1 text-xs text-text-primary placeholder-text-muted outline-none focus:border-primary/40 transition-colors min-w-[80px]"
+                      className="w-full bg-white border border-border rounded-md pl-6 pr-2 py-1 text-xs text-text-primary placeholder-text-muted outline-none focus:border-primary/40 transition-colors min-w-[80px]"
                     />
                   </div>
                 </th>
@@ -151,7 +151,7 @@ export default function DataTable({ data, title }) {
             {pageData.map((row, rowIdx) => (
               <tr
                 key={rowIdx}
-                className="border-b border-border/20 hover:bg-surface-light/30 transition-colors"
+                className="border-b border-border hover:bg-surface-hover transition-colors"
               >
                 {columns.map((col) => (
                   <td key={col} className="px-4 py-2.5 text-text-secondary whitespace-nowrap">

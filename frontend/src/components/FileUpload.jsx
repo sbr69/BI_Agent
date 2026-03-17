@@ -62,10 +62,10 @@ export default function FileUpload({ onUploadSuccess }) {
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
         onClick={() => fileInputRef.current?.click()}
-        className={`glass rounded-2xl p-6 cursor-pointer transition-all duration-300 text-center border-2 border-dashed ${
+        className={`card p-8 cursor-pointer transition-all duration-300 text-center border-2 border-dashed ${
           isDragging
-            ? "border-primary bg-primary/5 scale-[1.01]"
-            : "border-border hover:border-primary/40"
+            ? "border-primary bg-primary-50 scale-[1.01]"
+            : "border-border hover:border-primary-200"
         } ${uploading ? "opacity-60 pointer-events-none" : ""}`}
         id="file-upload"
       >
@@ -76,7 +76,7 @@ export default function FileUpload({ onUploadSuccess }) {
           accept=".csv"
           className="hidden"
         />
-        <Upload size={28} className={`mx-auto mb-3 ${isDragging ? "text-primary" : "text-text-muted"} transition-colors`} />
+        <Upload size={32} className={`mx-auto mb-3 ${isDragging ? "text-primary" : "text-text-muted"} transition-colors`} />
         <p className="text-sm font-medium text-text-secondary mb-1">
           {uploading ? "Uploading..." : "Drop a CSV file here or click to browse"}
         </p>
@@ -87,12 +87,12 @@ export default function FileUpload({ onUploadSuccess }) {
 
       {/* Success */}
       {result && (
-        <div className="mt-3 glass rounded-xl p-4 border-success/30 animate-fade-in-up">
+        <div className="mt-3 card p-4 animate-fade-in-up border-green-200">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <FileSpreadsheet size={18} className="text-success" />
               <div>
-                <p className="text-sm font-medium text-success">{result.message}</p>
+                <p className="text-sm font-medium text-green-700">{result.message}</p>
                 <p className="text-xs text-text-muted mt-0.5">
                   {result.columns?.length} columns • {result.row_count?.toLocaleString()} rows
                 </p>
@@ -107,7 +107,7 @@ export default function FileUpload({ onUploadSuccess }) {
 
       {/* Error */}
       {error && (
-        <div className="mt-3 glass rounded-xl p-4 border-error/30 animate-fade-in-up">
+        <div className="mt-3 card p-4 animate-fade-in-up border-red-200">
           <div className="flex items-center justify-between">
             <p className="text-sm text-error">{error}</p>
             <button onClick={dismiss} className="text-text-muted hover:text-text-primary">

@@ -9,7 +9,7 @@ import { CHART_COLORS, pivotData, formatNumber } from "../utils/chartHelpers";
 const CustomTooltip = ({ active, payload, label }) => {
   if (!active || !payload?.length) return null;
   return (
-    <div className="bg-surface-light/95 backdrop-blur-sm border border-border rounded-lg p-3 shadow-xl">
+    <div className="bg-white border border-border rounded-lg p-3 shadow-lg">
       <p className="text-text-primary font-semibold text-sm mb-1">{label}</p>
       {payload.map((entry, i) => (
         <p key={i} className="text-xs" style={{ color: entry.color }}>
@@ -210,18 +210,10 @@ export default function ChartRenderer({ chart, index }) {
 
   return (
     <div
-      className="glass rounded-2xl p-5 transition-all duration-300 hover:border-border-light hover:shadow-[0_8px_32px_rgba(0,0,0,0.3)] animate-fade-in-up"
+      className="animate-fade-in-up"
       style={{ animationDelay: `${index * 0.15}s` }}
       id={`chart-${index}`}
     >
-      {/* Chart Header */}
-      <div className="mb-4">
-        <h3 className="text-lg font-semibold text-text-primary">{chart.title}</h3>
-        {chart.description && (
-          <p className="text-sm text-text-muted mt-1">{chart.description}</p>
-        )}
-      </div>
-
       {/* Chart Body */}
       <ChartComponent
         data={chart.data}
