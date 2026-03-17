@@ -21,22 +21,28 @@ async def lifespan(app: FastAPI):
     """Initialize the query engine on startup, close on shutdown."""
     print("[*] Starting BI Dashboard Backend...")
 
-    # Connect to Supabase PostgreSQL
-    query_engine.initialize()
+    try:
+        # Connect to Supabase PostgreSQL
+        query_engine.initialize()
 
-    tables = query_engine.get_table_names()
-    print(f"[+] Connected to Supabase. Found {len(tables)} table(s).")
-    for t in tables:
-        row_count = query_engine.get_row_count(t)
-        print(f"   [table] {t}: {row_count:,} rows")
+        tables = query_engine.get_table_names()
+        print(f"[+] Connected to Supabase. Found {len(tables)} table(s).")
+        for t in tables:
+            row_count = query_engine.get_row_count(t)
+            print(f"   [table] {t}: {row_count:,} rows")
 
-    if not tables:
-        print("[!] No tables found. Use POST /api/upload or run: python seed.py")
+        if not tables:
+            print("[!] No tables found. Use POST /api/upload or run: python seed.py")
+    except Exception as e:
+        print(f"[!] Warning: Database initialization failed: {e}")
 
     yield
 
     print("[-] Shutting down...")
-    query_engine.close()
+    try:
+        query_engine.close()
+    except Exception as e:
+        print(f"[!] Error on shutdown: {e}")
 
 
 app = FastAPI(

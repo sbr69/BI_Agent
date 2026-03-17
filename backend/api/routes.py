@@ -178,7 +178,7 @@ def process_query(request: QueryRequest, req: Request):
         try:
             result = query_engine.execute_query(q["sql"])
             query_results.append(result)
-        except ValueError as e:
+        except Exception as e:
             query_results.append([])
             llm_response.setdefault("insights", []).append(f"Query error: {str(e)}")
 

@@ -5,7 +5,7 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip, Legend,
   ResponsiveContainer,
 } from "recharts";
-import { CHART_COLORS, pivotData, formatNumber } from "../utils/chartHelpers";
+import { CHART_COLORS, pivotData, formatNumber, parseChartData } from "../utils/chartHelpers";
 import {
   Download, Maximize2, X, BarChart3, LineChart as LineIcon,
   PieChart as PieIcon, AreaChart as AreaIcon, ScatterChart as ScatterIcon,
@@ -257,26 +257,29 @@ export default function ChartRenderer({ chart, index = 0, onTypeChange }) {
     );
   }
 
+  const safeData = parseChartData(chart.data, chart.yKeys);
+  const safeYKeys = chart.yKeys || (Object.keys(chart.data[0] || {}).filter(k => k !== chart.xKey && k !== chart.groupBy));
+
   const chartContent = (
-    <div ref={chartRef} className="bg-white p-2 w-full h-full">
-      <ChartComponent
-        data={chart.data}
-        xKey={chart.xKey}
-        yKeys={chart.yKeys}
-        groupBy={chart.groupBy}
-      />
-      <div className="mt-3 flex items-center justify-between text-xs text-text-muted">
-        <span>{chart.data.length} data points</span>
-        <span className="capitalize">{activeType} chart</span>
+    <div ref={chartRef} className="bg-white w-full flex-grow flex flex-col">
+      <div className="min-h-[350px] w-full">
+        <ChartComponent
+          data={safeData}
+          xKey={chart.xKey}
+          yKeys={safeYKeys}
+          groupBy={chart.groupBy}
+        />
+      </div>
+      <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-400 font-medium">
+        <span>{safeData.length} records</span>
+        <span className="capitalize">{activeType}</span>
       </div>
     </div>
   );
 
-  // Toolbar with chart type switcher, export, fullscreen
   const toolbar = (
-    <div className="flex items-center gap-1 mb-3">
-      {/* Chart type switcher */}
-      <div className="flex items-center gap-0.5 bg-surface-light rounded-lg p-0.5 mr-2">
+    <div className="flex items-center gap-1 bg-slate-50/50 p-1 rounded-lg border border-slate-100/50">
+      <div className="flex items-center gap-0.5 mr-2">
         {CHART_TYPE_OPTIONS.map(({ type, icon: Icon, label }) => (
           <button
             key={type}
@@ -284,19 +287,18 @@ export default function ChartRenderer({ chart, index = 0, onTypeChange }) {
             title={label}
             className={`p-1.5 rounded-md transition-colors ${
               activeType === type
-                ? "bg-white shadow text-primary"
-                : "text-text-muted hover:text-text-secondary"
+                ? "bg-white shadow-sm ring-1 ring-slate-200/50 text-blue-600"
+                : "text-slate-400 hover:text-slate-600"
             }`}
           >
             <Icon size={14} />
           </button>
         ))}
       </div>
-      {/* Export CSV */}
       <button
         onClick={handleExportCSV}
         disabled={exporting}
-        className="flex items-center gap-1 px-2 py-1.5 rounded-md text-xs text-text-muted hover:text-text-secondary hover:bg-surface-light transition-colors disabled:opacity-50"
+        className="flex items-center gap-1 px-2 py-1.5 rounded-md text-xs text-slate-500 hover:text-slate-700 hover:bg-slate-100 transition-colors disabled:opacity-50 font-medium"
         title="Download CSV"
       >
         <Download size={13} />
@@ -305,16 +307,15 @@ export default function ChartRenderer({ chart, index = 0, onTypeChange }) {
       <button
         onClick={handleExportPDF}
         disabled={exportPDF}
-        className="flex items-center gap-1 px-2 py-1.5 rounded-md text-xs text-text-muted hover:text-text-secondary hover:bg-surface-light transition-colors disabled:opacity-50"
+        className="flex items-center gap-1 px-2 py-1.5 rounded-md text-xs text-slate-500 hover:text-slate-700 hover:bg-slate-100 transition-colors disabled:opacity-50 font-medium"
         title="Download PDF"
       >
         <Download size={13} />
         <span className="hidden sm:inline">PDF</span>
       </button>
-      {/* Fullscreen */}
       <button
         onClick={() => setFullscreen(true)}
-        className="p-1.5 rounded-md text-text-muted hover:text-text-secondary hover:bg-surface-light transition-colors"
+        className="p-1.5 rounded-md text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
         title="Fullscreen"
       >
         <Maximize2 size={13} />
@@ -325,31 +326,38 @@ export default function ChartRenderer({ chart, index = 0, onTypeChange }) {
   return (
     <>
       <div
-        className="animate-fade-in-up"
+        className="animate-fade-in-up flex flex-col bg-white rounded-xl shadow-[0_1px_3px_0_rgb(0,0,0,0.02)] border border-slate-200/60 p-5 w-full h-full"
         style={{ animationDelay: `${index * 0.15}s` }}
         id={`chart-${index}`}
       >
-        {toolbar}
+        <div className="flex flex-col sm:flex-row sm:items-start justify-between mb-5 gap-4">
+          <div>
+            <h3 className="font-semibold text-slate-800 text-base">{chart.title || "Chart"}</h3>
+            {chart.description && <p className="text-sm text-slate-500 mt-1">{chart.description}</p>}
+          </div>
+          {toolbar}
+        </div>
         {chartContent}
       </div>
 
-      {/* Fullscreen Modal */}
       {fullscreen && (
-        <div className="fixed inset-0 z-[100] bg-black/60 flex items-center justify-center p-8 animate-fade-in" onClick={() => setFullscreen(false)}>
-          <div className="bg-white rounded-2xl w-full max-w-6xl max-h-[90vh] overflow-auto p-8 relative" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 z-[100] bg-slate-900/60 flex items-center justify-center p-6 sm:p-8 animate-fade-in backdrop-blur-sm" onClick={() => setFullscreen(false)}>
+          <div className="bg-white rounded-2xl w-full max-w-6xl max-h-[90vh] overflow-auto p-8 relative shadow-2xl" onClick={(e) => e.stopPropagation()}>
             <button
               onClick={() => setFullscreen(false)}
-              className="absolute top-4 right-4 p-2 rounded-lg hover:bg-surface-light text-text-muted hover:text-text-primary transition-colors"
+              className="absolute top-4 right-4 p-2 rounded-lg bg-slate-100/50 hover:bg-slate-100 text-slate-500 hover:text-slate-700 transition-colors"
             >
               <X size={20} />
             </button>
-            <h2 className="text-lg font-semibold text-text-primary mb-1">{chart.title}</h2>
-            {chart.description && <p className="text-sm text-text-muted mb-4">{chart.description}</p>}
-            <div style={{ height: "60vh" }}>
+            <div className="mb-6 max-w-4xl">
+              <h2 className="text-xl font-bold text-slate-800">{chart.title}</h2>
+              {chart.description && <p className="text-base text-slate-500 mt-2">{chart.description}</p>}
+            </div>
+            <div className="min-h-[60vh] w-full bg-slate-50/50 rounded-xl p-4 border border-slate-100">
               <ChartComponent
-                data={chart.data}
+                data={safeData}
                 xKey={chart.xKey}
-                yKeys={chart.yKeys}
+                yKeys={safeYKeys}
                 groupBy={chart.groupBy}
               />
             </div>
