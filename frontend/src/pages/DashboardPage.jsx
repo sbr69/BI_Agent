@@ -9,18 +9,24 @@ import {
   ArrowRight,
   Lightbulb,
   Zap,
+  Pin,
+  Trash2,
 } from "lucide-react";
 import ChartRenderer from "../components/ChartRenderer";
 import InsightCard from "../components/InsightCard";
+import KPICards from "../components/KPICards";
 
 export default function DashboardPage() {
-  const { dashboardData, datasets, activeDataset, queryHistory, isLoading } =
-    useAppContext();
+  const {
+    dashboardData, datasets, activeDataset, queryHistory, isLoading,
+    pinnedDashboards, removePin,
+  } = useAppContext();
   const navigate = useNavigate();
 
   const currentDataset = datasets.find((d) => d.name === activeDataset);
   const latestCharts = dashboardData?.charts || [];
   const latestInsights = dashboardData?.insights || [];
+  const latestKpis = dashboardData?.kpis || [];
   const meta = dashboardData?.metadata || {};
 
   const stats = [
@@ -33,9 +39,7 @@ export default function DashboardPage() {
     },
     {
       label: "Total Rows",
-      value: currentDataset
-        ? currentDataset.row_count?.toLocaleString()
-        : "--",
+      value: currentDataset ? currentDataset.row_count?.toLocaleString() : "--",
       icon: BarChart3,
       color: "text-blue-600",
       bg: "bg-blue-50",
@@ -82,25 +86,74 @@ export default function DashboardPage() {
             key={s.label}
             className="card p-4 flex items-center gap-4 card-hover transition-all"
           >
-            <div
-              className={`w-10 h-10 rounded-xl ${s.bg} flex items-center justify-center`}
-            >
+            <div className={`w-10 h-10 rounded-xl ${s.bg} flex items-center justify-center`}>
               <s.icon size={18} className={s.color} />
             </div>
             <div>
-              <p className="text-xs text-text-muted font-medium uppercase tracking-wide">
-                {s.label}
-              </p>
-              <p className="text-lg font-bold text-text-primary mt-0.5">
-                {s.value}
-              </p>
+              <p className="text-xs text-text-muted font-medium uppercase tracking-wide">{s.label}</p>
+              <p className="text-lg font-bold text-text-primary mt-0.5">{s.value}</p>
             </div>
           </div>
         ))}
       </div>
 
+      {/* Pinned Dashboards */}
+      {pinnedDashboards.length > 0 && (
+        <div>
+          <h2 className="text-sm font-semibold text-text-secondary uppercase tracking-wider mb-3 flex items-center gap-2">
+            <Pin size={14} className="text-primary" />
+            Pinned Dashboards
+          </h2>
+          <div className="space-y-4">
+            {pinnedDashboards.map((pin) => (
+              <div key={pin.id} className="card overflow-hidden">
+                <div className="flex items-center justify-between px-5 py-3 border-b border-border bg-surface-light">
+                  <div>
+                    <h3 className="text-sm font-semibold text-text-primary">{pin.title}</h3>
+                    <p className="text-[11px] text-text-muted">
+                      {pin.dataset && `${pin.dataset} · `}
+                      Pinned {new Date(pin.created_at).toLocaleDateString()}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => removePin(pin.id)}
+                    className="p-1.5 rounded-lg text-text-muted hover:text-red-500 hover:bg-red-50 transition-colors"
+                    title="Unpin"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                </div>
+                <div className="p-5 space-y-4">
+                  {pin.kpis?.length > 0 && <KPICards kpis={pin.kpis} />}
+                  {pin.charts?.length > 0 && (
+                    <div className={`grid gap-4 ${pin.charts.length === 1 ? "grid-cols-1" : "grid-cols-1 lg:grid-cols-2"}`}>
+                      {pin.charts.map((chart, i) => (
+                        <div key={i}>
+                          <h4 className="text-xs font-medium text-text-secondary mb-2">{chart.title}</h4>
+                          <ChartRenderer chart={chart} index={i} />
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {pin.insights?.length > 0 && (
+                    <div className="text-xs text-text-muted space-y-1">
+                      {pin.insights.map((ins, i) => (
+                        <p key={i} className="flex items-start gap-1.5">
+                          <Lightbulb size={11} className="text-primary shrink-0 mt-0.5" />
+                          {ins}
+                        </p>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Quick Actions */}
-      {!dashboardData && (
+      {!dashboardData && pinnedDashboards.length === 0 && (
         <div className="card p-8 text-center">
           <div className="w-16 h-16 rounded-2xl bg-primary-50 flex items-center justify-center mx-auto mb-4">
             <Zap size={28} className="text-primary" />
@@ -134,7 +187,8 @@ export default function DashboardPage() {
       {/* Latest Results */}
       {dashboardData && !dashboardData.error && (
         <>
-          {/* Metadata bar */}
+          {latestKpis.length > 0 && <KPICards kpis={latestKpis} />}
+
           {meta.query_time_ms && (
             <div className="flex items-center gap-4 text-xs text-text-muted">
               <span className="flex items-center gap-1">
@@ -151,35 +205,21 @@ export default function DashboardPage() {
             </div>
           )}
 
-          {/* Charts Grid */}
           {latestCharts.length > 0 && (
-            <div
-              className={`grid gap-4 ${
-                latestCharts.length === 1
-                  ? "grid-cols-1"
-                  : "grid-cols-1 lg:grid-cols-2"
-              }`}
-            >
+            <div className={`grid gap-4 ${latestCharts.length === 1 ? "grid-cols-1" : "grid-cols-1 lg:grid-cols-2"}`}>
               {latestCharts.map((chart, i) => (
                 <div key={i} className="card p-5">
-                  <h3 className="text-sm font-semibold text-text-primary mb-1">
-                    {chart.title}
-                  </h3>
+                  <h3 className="text-sm font-semibold text-text-primary mb-1">{chart.title}</h3>
                   {chart.description && (
-                    <p className="text-xs text-text-muted mb-3">
-                      {chart.description}
-                    </p>
+                    <p className="text-xs text-text-muted mb-3">{chart.description}</p>
                   )}
-                  <ChartRenderer chart={chart} />
+                  <ChartRenderer chart={chart} index={i} />
                 </div>
               ))}
             </div>
           )}
 
-          {/* Insights */}
-          {latestInsights.length > 0 && (
-            <InsightCard insights={latestInsights} />
-          )}
+          {latestInsights.length > 0 && <InsightCard insights={latestInsights} />}
         </>
       )}
 

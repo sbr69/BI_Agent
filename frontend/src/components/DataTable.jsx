@@ -1,5 +1,9 @@
-import { useState, useMemo } from "react";
-import { ArrowUpDown, ArrowUp, ArrowDown, Search, X, ChevronLeft, ChevronRight } from "lucide-react";
+import { useState, useMemo, useEffect } from "react";
+import {
+  ArrowUpDown, ArrowUp, ArrowDown, Search, X,
+  ChevronLeft, ChevronRight, EyeOff, Eye, Download,
+} from "lucide-react";
+import { exportChartCSV } from "../utils/api";
 
 const PAGE_SIZE = 15;
 
@@ -18,11 +22,38 @@ export default function DataTable({ data, title }) {
   const [sortDir, setSortDir] = useState("asc");
   const [filters, setFilters] = useState({});
   const [page, setPage] = useState(0);
+  const [hiddenCols, setHiddenCols] = useState(new Set());
+  const [showColPicker, setShowColPicker] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const [colOrder, setColOrder] = useState([]);
 
-  const columns = useMemo(() => {
+  const allColumns = useMemo(() => {
     if (!data?.length) return [];
     return Object.keys(data[0]);
   }, [data]);
+
+  useEffect(() => {
+    if (allColumns.length > 0 && colOrder.length === 0) {
+      setColOrder(allColumns);
+    }
+  }, [allColumns, colOrder]);
+
+  const columns = useMemo(() => {
+    const activeCols = colOrder.length ? colOrder : allColumns;
+    return activeCols.filter((c) => !hiddenCols.has(c));
+  }, [allColumns, hiddenCols, colOrder]);
+
+  const moveColumn = (index, direction) => {
+    setColOrder((prev) => {
+      const next = [...(prev.length ? prev : allColumns)];
+      if (direction === -1 && index > 0) {
+        [next[index - 1], next[index]] = [next[index], next[index - 1]];
+      } else if (direction === 1 && index < next.length - 1) {
+        [next[index], next[index + 1]] = [next[index + 1], next[index]];
+      }
+      return next;
+    });
+  };
 
   const handleSort = (key) => {
     if (sortKey === key) {
@@ -47,10 +78,35 @@ export default function DataTable({ data, title }) {
     setPage(0);
   };
 
+  const toggleColumn = (col) => {
+    setHiddenCols((prev) => {
+      const next = new Set(prev);
+      if (next.has(col)) {
+        next.delete(col);
+      } else {
+        if (allColumns.length - next.size > 1) {
+          next.add(col);
+        }
+      }
+      return next;
+    });
+  };
+
+  const handleExport = async () => {
+    setExporting(true);
+    try {
+      const exportData = data.map((row) => {
+        const filtered = {};
+        columns.forEach((col) => { filtered[col] = row[col]; });
+        return filtered;
+      });
+      await exportChartCSV(exportData, title || "table_export");
+    } catch { /* ignore */ }
+    setExporting(false);
+  };
+
   const processedData = useMemo(() => {
     let result = [...(data || [])];
-
-    // Apply filters
     for (const [key, value] of Object.entries(filters)) {
       const lower = value.toLowerCase();
       result = result.filter((row) => {
@@ -59,8 +115,6 @@ export default function DataTable({ data, title }) {
         return String(cell).toLowerCase().includes(lower);
       });
     }
-
-    // Apply sort
     if (sortKey) {
       result.sort((a, b) => {
         const aVal = a[sortKey];
@@ -68,7 +122,6 @@ export default function DataTable({ data, title }) {
         if (aVal == null && bVal == null) return 0;
         if (aVal == null) return 1;
         if (bVal == null) return -1;
-
         if (typeof aVal === "number" && typeof bVal === "number") {
           return sortDir === "asc" ? aVal - bVal : bVal - aVal;
         }
@@ -76,7 +129,6 @@ export default function DataTable({ data, title }) {
         return sortDir === "asc" ? cmp : -cmp;
       });
     }
-
     return result;
   }, [data, filters, sortKey, sortDir]);
 
@@ -93,7 +145,7 @@ export default function DataTable({ data, title }) {
         <h3 className="text-sm font-semibold text-text-primary">
           {title || "Data Table"}
         </h3>
-        <div className="flex items-center gap-3 text-xs text-text-muted">
+        <div className="flex items-center gap-2 text-xs text-text-muted">
           <span>{processedData.length} of {data.length} rows</span>
           {activeFilters > 0 && (
             <button
@@ -103,6 +155,49 @@ export default function DataTable({ data, title }) {
               <X size={12} /> Clear filters
             </button>
           )}
+          {/* Column picker toggle */}
+          <div className="relative">
+            <button
+              onClick={() => setShowColPicker(!showColPicker)}
+              className={`flex items-center gap-1 px-2 py-1 rounded-lg border transition-colors ${
+                hiddenCols.size > 0
+                  ? "border-primary/30 bg-primary/10 text-primary"
+                  : "border-border text-text-muted hover:text-text-secondary"
+              }`}
+              title="Show/hide columns"
+            >
+              {hiddenCols.size > 0 ? <EyeOff size={12} /> : <Eye size={12} />}
+              Columns
+            </button>
+            {showColPicker && (
+              <div className="absolute right-0 top-full mt-1 w-52 bg-white border border-border rounded-lg shadow-lg py-1 z-50 max-h-64 overflow-y-auto animate-fade-in">
+                {allColumns.map((col) => (
+                  <label
+                    key={col}
+                    className="flex items-center gap-2 px-3 py-1.5 text-xs text-text-secondary hover:bg-surface-hover cursor-pointer"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={!hiddenCols.has(col)}
+                      onChange={() => toggleColumn(col)}
+                      className="rounded border-border"
+                    />
+                    <span className="truncate">{col}</span>
+                  </label>
+                ))}
+              </div>
+            )}
+          </div>
+          {/* Export CSV */}
+          <button
+            onClick={handleExport}
+            disabled={exporting}
+            className="flex items-center gap-1 px-2 py-1 rounded-lg border border-border text-text-muted hover:text-text-secondary transition-colors disabled:opacity-50"
+            title="Download CSV"
+          >
+            <Download size={12} />
+            CSV
+          </button>
         </div>
       </div>
 
@@ -110,26 +205,41 @@ export default function DataTable({ data, title }) {
       <div className="overflow-x-auto rounded-xl border border-border">
         <table className="w-full text-sm">
           <thead>
-            {/* Sort headers */}
             <tr className="border-b border-border bg-surface-light">
-              {columns.map((col) => (
+              {columns.map((col, index) => (
                 <th
                   key={col}
-                  onClick={() => handleSort(col)}
-                  className="px-4 py-3 text-left text-xs font-semibold text-text-secondary uppercase tracking-wider cursor-pointer select-none hover:text-primary transition-colors whitespace-nowrap"
+                  className="px-4 py-3 text-left text-xs font-semibold text-text-secondary uppercase tracking-wider select-none hover:text-primary transition-colors whitespace-nowrap group"
                 >
-                  <span className="flex items-center gap-1.5">
-                    {sanitize(col)}
-                    {sortKey === col ? (
-                      sortDir === "asc" ? <ArrowUp size={12} className="text-primary" /> : <ArrowDown size={12} className="text-primary" />
-                    ) : (
-                      <ArrowUpDown size={12} className="text-text-muted opacity-40" />
-                    )}
-                  </span>
+                  <div className="flex items-center justify-between">
+                    <span className="flex items-center gap-1.5 cursor-pointer" onClick={() => handleSort(col)}>
+                      {sanitize(col)}
+                      {sortKey === col ? (
+                        sortDir === "asc" ? <ArrowUp size={12} className="text-primary" /> : <ArrowDown size={12} className="text-primary" />
+                      ) : (
+                        <ArrowUpDown size={12} className="text-text-muted opacity-40" />
+                      )}
+                    </span>
+                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity ml-2">
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); moveColumn(colOrder.indexOf(col), -1); }} 
+                        disabled={index === 0}
+                        className="p-1 hover:bg-surface-hover rounded disabled:opacity-30"
+                      >
+                        <ChevronLeft size={12} />
+                      </button>
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); moveColumn(colOrder.indexOf(col), 1); }} 
+                        disabled={index === columns.length - 1}
+                        className="p-1 hover:bg-surface-hover rounded disabled:opacity-30"
+                      >
+                        <ChevronRight size={12} />
+                      </button>
+                    </div>
+                  </div>
                 </th>
               ))}
             </tr>
-            {/* Filter row */}
             <tr className="border-b border-border bg-surface-light/50">
               {columns.map((col) => (
                 <th key={`filter-${col}`} className="px-3 py-2">
@@ -176,9 +286,7 @@ export default function DataTable({ data, title }) {
       {/* Pagination */}
       {totalPages > 1 && (
         <div className="flex items-center justify-between mt-4 text-xs text-text-muted">
-          <span>
-            Page {page + 1} of {totalPages}
-          </span>
+          <span>Page {page + 1} of {totalPages}</span>
           <div className="flex items-center gap-2">
             <button
               onClick={() => setPage((p) => Math.max(0, p - 1))}

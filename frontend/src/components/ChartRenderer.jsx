@@ -1,3 +1,4 @@
+import React, { useState, useRef } from "react";
 import {
   BarChart, Bar, LineChart, Line, PieChart, Pie, Cell,
   AreaChart, Area, ScatterChart, Scatter,
@@ -5,6 +6,13 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { CHART_COLORS, pivotData, formatNumber } from "../utils/chartHelpers";
+import {
+  Download, Maximize2, X, BarChart3, LineChart as LineIcon,
+  PieChart as PieIcon, AreaChart as AreaIcon, ScatterChart as ScatterIcon,
+} from "lucide-react";
+import { exportChartCSV } from "../utils/api";
+import html2canvas from "html2canvas";
+import jsPDF from "jspdf";
 
 const CustomTooltip = ({ active, payload, label }) => {
   if (!active || !payload?.length) return null;
@@ -40,7 +48,6 @@ function BarChartComponent({ data, xKey, yKeys, groupBy }) {
       );
     }
   }
-
   return (
     <ResponsiveContainer width="100%" height={350}>
       <BarChart data={data} margin={{ top: 10, right: 10, left: 0, bottom: 5 }}>
@@ -77,7 +84,6 @@ function LineChartComponent({ data, xKey, yKeys, groupBy }) {
       );
     }
   }
-
   return (
     <ResponsiveContainer width="100%" height={350}>
       <LineChart data={data} margin={{ top: 10, right: 10, left: 0, bottom: 5 }}>
@@ -97,7 +103,6 @@ function LineChartComponent({ data, xKey, yKeys, groupBy }) {
 function PieChartComponent({ data, xKey, yKeys }) {
   const valueKey = yKeys[0] || Object.keys(data[0] || {}).find((k) => k !== xKey);
   const RADIAN = Math.PI / 180;
-
   const renderLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent }) => {
     const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
     const x = cx + radius * Math.cos(-midAngle * RADIAN);
@@ -108,7 +113,6 @@ function PieChartComponent({ data, xKey, yKeys }) {
       </text>
     ) : null;
   };
-
   return (
     <ResponsiveContainer width="100%" height={350}>
       <PieChart>
@@ -144,7 +148,6 @@ function AreaChartComponent({ data, xKey, yKeys, groupBy }) {
       );
     }
   }
-
   return (
     <ResponsiveContainer width="100%" height={350}>
       <AreaChart data={data} margin={{ top: 10, right: 10, left: 0, bottom: 5 }}>
@@ -189,13 +192,59 @@ const CHART_MAP = {
   scatter: ScatterChartComponent,
 };
 
-export default function ChartRenderer({ chart, index }) {
-  const ChartComponent = CHART_MAP[chart.type];
+const CHART_TYPE_OPTIONS = [
+  { type: "bar", icon: BarChart3, label: "Bar" },
+  { type: "line", icon: LineIcon, label: "Line" },
+  { type: "pie", icon: PieIcon, label: "Pie" },
+  { type: "area", icon: AreaIcon, label: "Area" },
+  { type: "scatter", icon: ScatterIcon, label: "Scatter" },
+];
+
+export default function ChartRenderer({ chart, index = 0, onTypeChange }) {
+  const [fullscreen, setFullscreen] = useState(false);
+  const [overrideType, setOverrideType] = useState(null);
+  const [exporting, setExporting] = useState(false);
+  const [exportPDF, setExportPDF] = useState(false);
+
+  const activeType = overrideType || chart.type;
+  const ChartComponent = CHART_MAP[activeType];
+  
+  const chartRef = useRef(null);
+
+  const handleExportCSV = async () => {
+    setExporting(true);
+    try {
+      await exportChartCSV(chart.data, chart.title || "chart_export");
+    } catch { /* ignore */ }
+    setExporting(false);
+  };
+
+  const handleExportPDF = async () => {
+    if (!chartRef.current) return;
+    setExportPDF(true);
+    try {
+      const canvas = await html2canvas(chartRef.current, { scale: 2 });
+      const imgData = canvas.toDataURL("image/png");
+      const pdf = new jsPDF("l", "mm", "a4");
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+      
+      pdf.text(chart.title || "Chart Export", 10, 10);
+      pdf.addImage(imgData, "PNG", 10, 20, pdfWidth - 20, pdfHeight - 20);
+      pdf.save(`${chart.title || "chart_export"}.pdf`);
+    } catch { /* ignore */ }
+    setExportPDF(false);
+  };
+
+  const handleTypeChange = (newType) => {
+    setOverrideType(newType);
+    if (onTypeChange) onTypeChange(newType);
+  };
 
   if (!ChartComponent) {
     return (
       <div className="glass rounded-2xl p-6">
-        <p className="text-error">Unsupported chart type: {chart.type}</p>
+        <p className="text-error">Unsupported chart type: {activeType}</p>
       </div>
     );
   }
@@ -208,25 +257,105 @@ export default function ChartRenderer({ chart, index }) {
     );
   }
 
-  return (
-    <div
-      className="animate-fade-in-up"
-      style={{ animationDelay: `${index * 0.15}s` }}
-      id={`chart-${index}`}
-    >
-      {/* Chart Body */}
+  const chartContent = (
+    <div ref={chartRef} className="bg-white p-2 w-full h-full">
       <ChartComponent
         data={chart.data}
         xKey={chart.xKey}
         yKeys={chart.yKeys}
         groupBy={chart.groupBy}
       />
-
-      {/* Chart Footer */}
       <div className="mt-3 flex items-center justify-between text-xs text-text-muted">
         <span>{chart.data.length} data points</span>
-        <span className="capitalize">{chart.type} chart</span>
+        <span className="capitalize">{activeType} chart</span>
       </div>
     </div>
+  );
+
+  // Toolbar with chart type switcher, export, fullscreen
+  const toolbar = (
+    <div className="flex items-center gap-1 mb-3">
+      {/* Chart type switcher */}
+      <div className="flex items-center gap-0.5 bg-surface-light rounded-lg p-0.5 mr-2">
+        {CHART_TYPE_OPTIONS.map(({ type, icon: Icon, label }) => (
+          <button
+            key={type}
+            onClick={() => handleTypeChange(type)}
+            title={label}
+            className={`p-1.5 rounded-md transition-colors ${
+              activeType === type
+                ? "bg-white shadow text-primary"
+                : "text-text-muted hover:text-text-secondary"
+            }`}
+          >
+            <Icon size={14} />
+          </button>
+        ))}
+      </div>
+      {/* Export CSV */}
+      <button
+        onClick={handleExportCSV}
+        disabled={exporting}
+        className="flex items-center gap-1 px-2 py-1.5 rounded-md text-xs text-text-muted hover:text-text-secondary hover:bg-surface-light transition-colors disabled:opacity-50"
+        title="Download CSV"
+      >
+        <Download size={13} />
+        <span className="hidden sm:inline">CSV</span>
+      </button>
+      <button
+        onClick={handleExportPDF}
+        disabled={exportPDF}
+        className="flex items-center gap-1 px-2 py-1.5 rounded-md text-xs text-text-muted hover:text-text-secondary hover:bg-surface-light transition-colors disabled:opacity-50"
+        title="Download PDF"
+      >
+        <Download size={13} />
+        <span className="hidden sm:inline">PDF</span>
+      </button>
+      {/* Fullscreen */}
+      <button
+        onClick={() => setFullscreen(true)}
+        className="p-1.5 rounded-md text-text-muted hover:text-text-secondary hover:bg-surface-light transition-colors"
+        title="Fullscreen"
+      >
+        <Maximize2 size={13} />
+      </button>
+    </div>
+  );
+
+  return (
+    <>
+      <div
+        className="animate-fade-in-up"
+        style={{ animationDelay: `${index * 0.15}s` }}
+        id={`chart-${index}`}
+      >
+        {toolbar}
+        {chartContent}
+      </div>
+
+      {/* Fullscreen Modal */}
+      {fullscreen && (
+        <div className="fixed inset-0 z-[100] bg-black/60 flex items-center justify-center p-8 animate-fade-in" onClick={() => setFullscreen(false)}>
+          <div className="bg-white rounded-2xl w-full max-w-6xl max-h-[90vh] overflow-auto p-8 relative" onClick={(e) => e.stopPropagation()}>
+            <button
+              onClick={() => setFullscreen(false)}
+              className="absolute top-4 right-4 p-2 rounded-lg hover:bg-surface-light text-text-muted hover:text-text-primary transition-colors"
+            >
+              <X size={20} />
+            </button>
+            <h2 className="text-lg font-semibold text-text-primary mb-1">{chart.title}</h2>
+            {chart.description && <p className="text-sm text-text-muted mb-4">{chart.description}</p>}
+            <div style={{ height: "60vh" }}>
+              <ChartComponent
+                data={chart.data}
+                xKey={chart.xKey}
+                yKeys={chart.yKeys}
+                groupBy={chart.groupBy}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }

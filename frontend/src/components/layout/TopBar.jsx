@@ -4,12 +4,16 @@ import {
   Wifi,
   WifiOff,
   ChevronDown,
+  Calendar,
+  X,
 } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 
 export default function TopBar() {
-  const { datasets, activeDataset, setActiveDataset, backendConnected } =
-    useAppContext();
+  const {
+    datasets, activeDataset, setActiveDataset, backendConnected,
+    dateFrom, setDateFrom, dateTo, setDateTo,
+  } = useAppContext();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const ref = useRef(null);
 
@@ -20,6 +24,8 @@ export default function TopBar() {
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, []);
+
+  const hasDateFilter = dateFrom || dateTo;
 
   return (
     <header className="h-14 bg-white border-b border-border flex items-center justify-between px-6 shrink-0 z-30">
@@ -60,6 +66,35 @@ export default function TopBar() {
             </div>
           )}
         </div>
+      </div>
+
+      {/* Center: Date range filter */}
+      <div className="flex items-center gap-2">
+        <Calendar size={14} className="text-text-muted" />
+        <input
+          type="date"
+          value={dateFrom}
+          onChange={(e) => setDateFrom(e.target.value)}
+          className="px-2 py-1 text-xs border border-border rounded-md bg-white text-text-secondary focus:border-primary/40 outline-none"
+          placeholder="From"
+        />
+        <span className="text-xs text-text-muted">to</span>
+        <input
+          type="date"
+          value={dateTo}
+          onChange={(e) => setDateTo(e.target.value)}
+          className="px-2 py-1 text-xs border border-border rounded-md bg-white text-text-secondary focus:border-primary/40 outline-none"
+          placeholder="To"
+        />
+        {hasDateFilter && (
+          <button
+            onClick={() => { setDateFrom(""); setDateTo(""); }}
+            className="flex items-center gap-1 px-1.5 py-1 rounded text-xs text-red-500 hover:bg-red-50 transition-colors"
+            title="Clear date filter"
+          >
+            <X size={12} />
+          </button>
+        )}
       </div>
 
       {/* Right: Connection status */}
