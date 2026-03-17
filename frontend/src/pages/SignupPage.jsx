@@ -215,7 +215,7 @@ export default function SignupPage() {
                       {[0, 1, 2].map((i) => (
                         <div
                           key={i}
-                          className={`flex-1 rounded-full transition-all duration-300 ${
+                          className={`flex-1 rounded-full transition-all duration-200 ${
                             i < passwordStrength ? strengthColor : "bg-border"
                           }`}
                         />

@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 
 export default function HistoryPage() {
-  const { queryHistory, setQueryHistory, setChatHistory, setDashboardData } = useAppContext();
+  const { queryHistory, setQueryHistory } = useAppContext();
   const navigate = useNavigate();
   const [selectedEntry, setSelectedEntry] = useState(null);
   const [viewMode, setViewMode] = useState("charts");

@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import { useState, useEffect, useCallback, useMemo, createContext, useContext } from "react";
 import { Outlet } from "react-router-dom";
 import Sidebar from "./Sidebar";
@@ -139,7 +140,7 @@ export default function Layout() {
         )}
 
         <div
-          className={`flex-1 flex flex-col min-w-0 transition-all duration-300 ${
+          className={`flex-1 flex flex-col min-w-0 transition-[margin] ease-in-out duration-200 ${
             sidebarCollapsed ? "md:ml-[68px]" : "md:ml-[240px]"
           }`}
         >

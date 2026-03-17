@@ -62,7 +62,7 @@ export default function FileUpload({ onUploadSuccess }) {
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
         onClick={() => fileInputRef.current?.click()}
-        className={`card p-8 cursor-pointer transition-all duration-300 text-center border-2 border-dashed ${
+        className={`card p-8 cursor-pointer transition-all duration-200 text-center border-2 border-dashed ${
           isDragging
             ? "border-primary bg-primary-50 scale-[1.01]"
             : "border-border hover:border-primary-200"

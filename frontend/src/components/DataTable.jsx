@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo } from "react";
 import {
   ArrowUpDown, ArrowUp, ArrowDown, Search, X,
   ChevronLeft, ChevronRight, EyeOff, Eye, Download,
@@ -21,12 +21,6 @@ export default function DataTable({ data, title }) {
     if (!data?.length) return [];
     return Object.keys(data[0]);
   }, [data]);
-
-  useEffect(() => {
-    if (allColumns.length > 0 && colOrder.length === 0) {
-      setColOrder(allColumns);
-    }
-  }, [allColumns, colOrder]);
 
   const columns = useMemo(() => {
     const activeCols = colOrder.length ? colOrder : allColumns;

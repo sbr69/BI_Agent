@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Building2,
@@ -34,19 +34,12 @@ const DEFAULT_PROFILE = {
 export default function ProfilePage() {
   const navigate = useNavigate();
   const [profile, setProfile] = useState(() => loadProfile() || DEFAULT_PROFILE);
-  const [editing, setEditing] = useState(false);
+  const [editing, setEditing] = useState(() => !localStorage.getItem(PROFILE_KEY));
   const [draft, setDraft] = useState(profile);
   const [saved, setSaved] = useState(false);
   const [errors, setErrors] = useState({});
   const [showColorPicker, setShowColorPicker] = useState(false);
-
-  useEffect(() => {
-    // If profile has no name, check if we came from signup
-    const raw = localStorage.getItem(PROFILE_KEY);
-    if (!raw) {
-      setEditing(true); // open edit mode immediately for new users
-    }
-  }, []);
+  const [fallbackDate] = useState(() => Date.now());
 
   function handleEdit() {
     setDraft({ ...profile });
@@ -258,7 +251,7 @@ export default function ProfilePage() {
             <div className="flex items-center gap-2">
               <Calendar size={14} className="text-text-muted shrink-0" />
               <span className="text-sm text-text-primary">
-                {new Date(profile.joinedAt || Date.now()).toLocaleDateString("en-US", {
+                {new Date(profile.joinedAt || fallbackDate).toLocaleDateString("en-US", {
                   year: "numeric",
                   month: "long",
                   day: "numeric",

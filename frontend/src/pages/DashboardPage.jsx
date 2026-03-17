@@ -21,7 +21,7 @@ import ChartRenderer from "../components/ChartRenderer";
 import KPICards from "../components/KPICards";
 import { checkHealth, fetchSchedules } from "../utils/api";
 import { CHART_COLORS } from "../utils/chartHelpers";
-import { loadProfile, getInitials, EXAMPLE_PROMPTS } from "../utils/constants";
+import { loadProfile, EXAMPLE_PROMPTS } from "../utils/constants";
 
 /* ═══════════════════════════════════════════════════════════════
    HELPER COMPONENTS
@@ -275,7 +275,7 @@ export default function DashboardPage() {
       icon: Calendar, color: "#14B8A6", trend: schedules.filter(s => s.active).length > 0 ? "Running" : "None", trendUp: schedules.length > 0,
       sparkData: [{ value: 0 }, { value: 0 }, { value: 1 }, { value: 1 }, { value: 2 }, { value: schedules.length }],
     },
-  ], [datasets, totalRows, totalColumns, columnTypeBreakdown, queryHistory, pinnedDashboards, schedules]);
+  ], [datasets, totalRows, totalColumns, columnTypeBreakdown, queryHistory, pinnedDashboards, schedules, dateFilteredHistory, dateFrom, dateTo]);
 
   /* ─── Activity chart: dynamic window based on date filter ─── */
   const activityChartData = useMemo(() => {
@@ -577,7 +577,7 @@ export default function DashboardPage() {
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3" id="kpi-strip">
         {stats.map((s, i) => (
           <div key={i}
-            className="rounded-xl border border-border bg-white p-4 hover:shadow-md hover:border-primary/20 transition-all duration-300 group cursor-default"
+            className="rounded-xl border border-border bg-white p-4 hover:shadow-md hover:border-primary/20 transition-all duration-200 group cursor-default"
             style={{ borderTopColor: s.color, borderTopWidth: "2px" }}>
             <div className="flex items-center justify-between mb-2">
               <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: s.color + "15" }}>
@@ -606,7 +606,7 @@ export default function DashboardPage() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3" id="quick-actions">
         {quickActions.map((a) => (
           <button key={a.label} onClick={() => navigate(a.path)}
-            className="group rounded-xl border border-border bg-white p-4 text-left hover:shadow-md hover:-translate-y-0.5 transition-all duration-300">
+            className="group rounded-xl border border-border bg-white p-4 text-left hover:shadow-md hover:-translate-y-0.5 transition-all duration-200">
             <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${a.color} flex items-center justify-center mb-3 shadow-sm group-hover:scale-110 transition-transform`}>
               <a.icon size={18} className="text-white" />
             </div>

@@ -31,7 +31,7 @@ export default function Sidebar({ collapsed, onToggle, isMobile, onClose }) {
   // Close mobile sidebar on route change
   useEffect(() => {
     if (isMobile && onClose) onClose();
-  }, [location.pathname]);
+  }, [location.pathname]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Refresh when profile is saved from ProfilePage (same tab) or another tab
   useEffect(() => {
@@ -68,7 +68,7 @@ export default function Sidebar({ collapsed, onToggle, isMobile, onClose }) {
       )}
 
       <aside
-        className={`fixed left-0 top-0 h-screen bg-white border-r border-border flex flex-col z-50 transition-all duration-300 ${
+        className={`fixed left-0 top-0 h-screen bg-white border-r border-border flex flex-col z-50 transition-all duration-200 ${
           isMobile ? "w-[240px] shadow-2xl" : collapsed ? "w-[68px]" : "w-[240px]"
         }`}
       >

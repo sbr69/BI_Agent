@@ -17,7 +17,7 @@ async function fetchWithRetry(url, options = {}, retries = 1) {
       try {
         const err = await res.json();
         errDetail = err.detail || err.message || errDetail;
-      } catch (e) {
+      } catch {
         // Ignore JSON parsing errors for error bodies
       }
       throw new Error(errDetail);
