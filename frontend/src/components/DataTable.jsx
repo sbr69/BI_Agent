@@ -7,16 +7,6 @@ import { exportChartCSV } from "../utils/api";
 
 const PAGE_SIZE = 15;
 
-function sanitize(value) {
-  if (value == null) return "";
-  const str = String(value);
-  return str
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
-}
-
 export default function DataTable({ data, title }) {
   const [sortKey, setSortKey] = useState(null);
   const [sortDir, setSortDir] = useState("asc");
@@ -213,7 +203,7 @@ export default function DataTable({ data, title }) {
                 >
                   <div className="flex items-center justify-between">
                     <span className="flex items-center gap-1.5 cursor-pointer" onClick={() => handleSort(col)}>
-                      {sanitize(col)}
+                      {col}
                       {sortKey === col ? (
                         sortDir === "asc" ? <ArrowUp size={12} className="text-primary" /> : <ArrowDown size={12} className="text-primary" />
                       ) : (
@@ -267,7 +257,7 @@ export default function DataTable({ data, title }) {
                   <td key={col} className="px-4 py-2.5 text-text-secondary whitespace-nowrap">
                     {typeof row[col] === "number"
                       ? row[col].toLocaleString("en-US", { maximumFractionDigits: 2 })
-                      : sanitize(row[col])}
+                      : row[col]}
                   </td>
                 ))}
               </tr>

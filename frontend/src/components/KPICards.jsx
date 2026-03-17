@@ -4,14 +4,14 @@ export default function KPICards({ kpis }) {
   if (!kpis?.length) return null;
 
   const trendIcon = (trend) => {
-    if (trend === "up") return <TrendingUp size={16} className="text-green-500" />;
-    if (trend === "down") return <TrendingDown size={16} className="text-red-500" />;
+    if (trend === "up") return <TrendingUp size={16} className="text-success" />;
+    if (trend === "down") return <TrendingDown size={16} className="text-error" />;
     return <Minus size={14} className="text-text-muted" />;
   };
 
   const trendColor = (trend) => {
-    if (trend === "up") return "text-green-600";
-    if (trend === "down") return "text-red-600";
+    if (trend === "up") return "text-success";
+    if (trend === "down") return "text-error";
     return "text-text-muted";
   };
 

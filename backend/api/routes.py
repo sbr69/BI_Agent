@@ -247,21 +247,6 @@ def process_query(request: QueryRequest, req: Request):
 # Export endpoints
 # ---------------------------------------------------------------------------
 
-@router.post("/export/csv")
-def export_csv(req: Request):
-    """Export chart data as CSV."""
-    _check_rate_limit(req)
-    body = req.scope.get("body")
-    # FastAPI sync handler: read body manually not needed with proper model
-    # Use a simple dict for flexibility
-    return _export_csv_handler(req)
-
-
-def _export_csv_handler(req: Request):
-    """Actual handler extracted for reuse."""
-    pass  # replaced by the actual endpoint below
-
-
 @router.post("/export/chart-csv")
 def export_chart_csv(payload: dict, req: Request):
     """Export chart data as a downloadable CSV file."""

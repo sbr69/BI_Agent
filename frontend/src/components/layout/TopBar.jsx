@@ -6,10 +6,11 @@ import {
   ChevronDown,
   Calendar,
   X,
+  Menu,
 } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 
-export default function TopBar() {
+export default function TopBar({ onMenuToggle }) {
   const {
     datasets, activeDataset, setActiveDataset, backendConnected,
     dateFrom, setDateFrom, dateTo, setDateTo,
@@ -28,19 +29,30 @@ export default function TopBar() {
   const hasDateFilter = dateFrom || dateTo;
 
   return (
-    <header className="h-14 bg-white border-b border-border flex items-center justify-between px-6 shrink-0 z-30">
-      {/* Left: Dataset selector */}
-      <div className="flex items-center gap-3" ref={ref}>
+    <header className="h-14 bg-white border-b border-border flex items-center justify-between px-4 md:px-6 shrink-0 z-30 gap-2">
+      {/* Left: Hamburger (mobile) + Dataset selector */}
+      <div className="flex items-center gap-2 min-w-0" ref={ref}>
+        {/* Mobile hamburger */}
+        {onMenuToggle && (
+          <button
+            onClick={onMenuToggle}
+            className="md:hidden p-2 rounded-lg text-text-muted hover:bg-surface-light hover:text-text-secondary transition-colors shrink-0"
+            title="Open menu"
+          >
+            <Menu size={20} />
+          </button>
+        )}
+
         <div className="relative">
           <button
             onClick={() => setDropdownOpen(!dropdownOpen)}
             className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-border hover:border-primary-200 hover:bg-surface-hover transition-colors text-sm"
           >
             <Database size={14} className="text-primary" />
-            <span className="text-text-secondary font-medium">
+            <span className="text-text-secondary font-medium truncate max-w-[120px] md:max-w-none">
               {activeDataset || "No dataset"}
             </span>
-            <ChevronDown size={14} className="text-text-muted" />
+            <ChevronDown size={14} className="text-text-muted shrink-0" />
           </button>
           {dropdownOpen && datasets.length > 0 && (
             <div className="absolute top-full left-0 mt-1 w-56 bg-white border border-border rounded-lg shadow-lg py-1 z-50 animate-fade-in">
@@ -68,8 +80,8 @@ export default function TopBar() {
         </div>
       </div>
 
-      {/* Center: Date range filter */}
-      <div className="flex items-center gap-2">
+      {/* Center: Date range filter — hidden on small screens */}
+      <div className="hidden sm:flex items-center gap-2">
         <Calendar size={14} className="text-text-muted" />
         <input
           type="date"
@@ -89,7 +101,7 @@ export default function TopBar() {
         {hasDateFilter && (
           <button
             onClick={() => { setDateFrom(""); setDateTo(""); }}
-            className="flex items-center gap-1 px-1.5 py-1 rounded text-xs text-red-500 hover:bg-red-50 transition-colors"
+            className="flex items-center gap-1 px-1.5 py-1 rounded text-xs text-error hover:bg-error-50 transition-colors"
             title="Clear date filter"
           >
             <X size={12} />
@@ -98,12 +110,12 @@ export default function TopBar() {
       </div>
 
       {/* Right: Connection status */}
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-4 shrink-0">
         <div
           className={`flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full ${
             backendConnected
-              ? "bg-green-50 text-green-700"
-              : "bg-red-50 text-red-600"
+              ? "bg-success-50 text-success"
+              : "bg-error-50 text-error"
           }`}
         >
           {backendConnected ? (
@@ -111,7 +123,9 @@ export default function TopBar() {
           ) : (
             <WifiOff size={12} />
           )}
-          {backendConnected ? "Connected" : "Disconnected"}
+          <span className="hidden sm:inline">
+            {backendConnected ? "Connected" : "Disconnected"}
+          </span>
         </div>
       </div>
     </header>

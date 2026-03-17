@@ -19,15 +19,7 @@ import {
   Pin,
   History,
 } from "lucide-react";
-
-const EXAMPLE_PROMPTS = [
-  "Show me total revenue by customer region",
-  "Monthly sales trends for 2023 by product category",
-  "What's the most popular payment method?",
-  "Top 5 product categories by average discount",
-  "Revenue vs discount correlation analysis",
-  "Compare Q1 and Q2 2023 performance by region",
-];
+import { EXAMPLE_PROMPTS } from "../utils/constants";
 
 export default function QueryPage() {
   const {
@@ -141,14 +133,14 @@ export default function QueryPage() {
 
       {/* Follow-up Context Banner */}
       {hasPreviousContext && (
-        <div className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-blue-50 border border-blue-100 text-xs text-blue-700">
+        <div className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-info-50 border border-info/20 text-xs text-info">
           <History size={14} />
           <span>
             Follow-up mode &mdash; building on: <strong className="font-semibold">"{previousQuery}"</strong>
           </span>
           <button
             onClick={() => { setChatHistory([]); setDashboardData(null); }}
-            className="ml-auto px-2 py-0.5 rounded bg-blue-100 hover:bg-blue-200 text-blue-800 transition-colors"
+            className="ml-auto px-2 py-0.5 rounded bg-info/10 hover:bg-info/20 text-info transition-colors"
           >
             New session
           </button>
@@ -157,7 +149,7 @@ export default function QueryPage() {
 
       {/* Date Filter Active Banner */}
       {(dateFrom || dateTo) && (
-        <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-amber-50 border border-amber-100 text-xs text-amber-700">
+        <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-warning-50 border border-warning/20 text-xs text-warning">
           <Clock size={14} />
           <span>
             Date filter active: {dateFrom || "..."} to {dateTo || "..."}
@@ -214,13 +206,13 @@ export default function QueryPage() {
             <div key={i} className="flex gap-3 animate-fade-in-up">
               <div
                 className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 mt-0.5 ${
-                  msg.role === "user" ? "bg-primary-50" : "bg-blue-50"
+                  msg.role === "user" ? "bg-primary-50" : "bg-info-50"
                 }`}
               >
                 {msg.role === "user" ? (
                   <User size={14} className="text-primary" />
                 ) : (
-                  <Bot size={14} className="text-blue-600" />
+                  <Bot size={14} className="text-info" />
                 )}
               </div>
               <div className="flex-1 min-w-0">
@@ -279,7 +271,7 @@ export default function QueryPage() {
                   disabled={pinning}
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
                     pinning
-                      ? "bg-green-50 border-green-200 text-green-700"
+                      ? "bg-success-50 border-success/30 text-success"
                       : "border-border text-text-secondary hover:border-primary-200 hover:text-primary"
                   }`}
                 >
@@ -317,11 +309,7 @@ export default function QueryPage() {
           {viewMode === "charts" && dashboardData.charts?.length > 0 && !dashboardData.error && (
             <div className={`grid gap-4 ${dashboardData.charts.length === 1 ? "grid-cols-1" : "grid-cols-1 lg:grid-cols-2"}`}>
               {dashboardData.charts.map((chart, i) => (
-                <div key={i} className="card p-5">
-                  <h3 className="text-sm font-semibold text-text-primary mb-1">{chart.title}</h3>
-                  {chart.description && <p className="text-xs text-text-muted mb-3">{chart.description}</p>}
-                  <ChartRenderer chart={chart} index={i} />
-                </div>
+                <ChartRenderer key={i} chart={chart} index={i} />
               ))}
             </div>
           )}

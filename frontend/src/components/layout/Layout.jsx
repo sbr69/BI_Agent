@@ -34,6 +34,7 @@ function loadSavedPins() {
 
 export default function Layout() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [datasets, setDatasets] = useState([]);
   const [activeDataset, setActiveDataset] = useState(null);
   const [backendConnected, setBackendConnected] = useState(true);
@@ -118,17 +119,31 @@ export default function Layout() {
   return (
     <AppContext.Provider value={ctx}>
       <div className="flex h-screen bg-surface overflow-hidden">
-        <Sidebar
-          collapsed={sidebarCollapsed}
-          onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
-        />
+        {/* Desktop sidebar — hidden on mobile */}
+        <div className="hidden md:block">
+          <Sidebar
+            collapsed={sidebarCollapsed}
+            onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
+          />
+        </div>
+
+        {/* Mobile sidebar — overlay */}
+        {mobileMenuOpen && (
+          <div className="md:hidden">
+            <Sidebar
+              isMobile
+              onClose={() => setMobileMenuOpen(false)}
+            />
+          </div>
+        )}
+
         <div
           className={`flex-1 flex flex-col min-w-0 transition-all duration-300 ${
-            sidebarCollapsed ? "ml-[68px]" : "ml-[240px]"
+            sidebarCollapsed ? "md:ml-[68px]" : "md:ml-[240px]"
           }`}
         >
-          <TopBar />
-          <main className="flex-1 overflow-y-auto p-6">
+          <TopBar onMenuToggle={() => setMobileMenuOpen(true)} />
+          <main className="flex-1 overflow-y-auto p-4 md:p-6">
             <Outlet />
           </main>
         </div>

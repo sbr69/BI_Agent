@@ -45,8 +45,9 @@ You MUST respond with ONLY valid JSON (no markdown, no backticks, no explanation
   "kpis": [
     {{
       "label": "Total Revenue",
-      "value": "$32.5M",
-      "change": "+12.3%",
+      "sql_index": 0,
+      "valueKey": "total_rev",
+      "prefix": "$",
       "trend": "up"
     }}
   ],
@@ -59,11 +60,13 @@ You MUST respond with ONLY valid JSON (no markdown, no backticks, no explanation
 
 ## KPI Rules
 - Generate 2-4 KPI cards that summarize the key numbers relevant to the user's question
-- "value" should be a formatted string (e.g., "$32.5M", "1,234", "85.3%")
-- "change" is optional — include a percentage change if there's a comparison context
+- Each KPI MUST reference a SQL query result using "sql_index" (index into sql_queries array) and "valueKey" (the column alias to read)
+- The backend will extract the actual value from the first row of the query result
+- "prefix" is optional — use "$" for monetary values, "" for counts/percentages
 - "trend" is "up" (positive), "down" (negative), or "neutral"
-- KPIs should provide quick headline numbers BEFORE the user looks at charts
-- Always include at least one KPI showing the main metric the user asked about
+- Make sure the sql_index points to a query that returns the needed aggregate value
+- The valueKey must match a column alias in the referenced SQL query
+- You may reuse the same sql_index as a chart if the first row contains the KPI value, or create a dedicated KPI query in sql_queries
 
 ## Chart Selection Rules
 - **Time-series data** (dates on x-axis) -> use "line" or "area"

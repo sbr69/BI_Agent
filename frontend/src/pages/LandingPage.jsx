@@ -31,35 +31,35 @@ const FEATURES = [
     title: "Interactive Charts",
     desc: "Automatically render bar, line, pie, area, and scatter charts. Export, zoom, and pin your favourites.",
     color: "text-info",
-    bg: "bg-blue-50",
+    bg: "bg-info-50",
   },
   {
     icon: Database,
     title: "Any CSV Dataset",
     desc: "Upload your own CSV files and start querying within seconds. No database setup required.",
     color: "text-success",
-    bg: "bg-green-50",
+    bg: "bg-success-50",
   },
   {
     icon: TrendingUp,
     title: "KPI Dashboards",
     desc: "Get auto-generated KPI cards and trend indicators that surface the metrics that matter most.",
-    color: "text-purple-500",
-    bg: "bg-purple-50",
+    color: "text-warning",
+    bg: "bg-warning-50",
   },
   {
     icon: MessageSquare,
     title: "Contextual Follow-ups",
     desc: "Continue a conversation with follow-up questions. The AI remembers your session context.",
-    color: "text-pink-500",
-    bg: "bg-pink-50",
+    color: "text-error",
+    bg: "bg-error-50",
   },
   {
     icon: Shield,
     title: "Query History",
     desc: "Every query is saved. Re-run, review, and build on past analysis without starting over.",
-    color: "text-amber-500",
-    bg: "bg-amber-50",
+    color: "text-accent",
+    bg: "bg-warning-50",
   },
 ];
 
@@ -152,7 +152,7 @@ export default function LandingPage() {
         {/* subtle bg decoration */}
         <div className="pointer-events-none absolute inset-0 overflow-hidden">
           <div className="absolute -top-32 -right-32 w-96 h-96 rounded-full bg-primary-50 opacity-60 blur-3xl" />
-          <div className="absolute top-40 -left-24 w-72 h-72 rounded-full bg-amber-50 opacity-50 blur-3xl" />
+          <div className="absolute top-40 -left-24 w-72 h-72 rounded-full bg-warning-50 opacity-50 blur-3xl" />
         </div>
 
         <div className="relative max-w-4xl mx-auto text-center space-y-8 animate-fade-in-up">

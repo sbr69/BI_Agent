@@ -17,38 +17,16 @@ import {
   Shield,
   Info,
 } from "lucide-react";
+import { AVATAR_COLORS, getInitials, loadProfile } from "../utils/constants";
 
 const PROFILE_KEY = "bi_agent_user_profile";
 const ROLES = ["Analyst", "Manager", "Developer", "Student", "Data Scientist", "Other"];
-
-function loadProfile() {
-  try {
-    const saved = localStorage.getItem(PROFILE_KEY);
-    if (saved) return JSON.parse(saved);
-  } catch { /* ignore */ }
-  return null;
-}
 
 function saveProfile(data) {
   try {
     localStorage.setItem(PROFILE_KEY, JSON.stringify(data));
   } catch { /* ignore */ }
 }
-
-function getInitials(name) {
-  if (!name) return "?";
-  const parts = name.trim().split(" ").filter(Boolean);
-  if (parts.length === 1) return parts[0][0].toUpperCase();
-  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
-}
-
-const AVATAR_COLORS = [
-  { from: "#F97316", to: "#F59E0B", label: "Orange" },
-  { from: "#3B82F6", to: "#06B6D4", label: "Blue" },
-  { from: "#8B5CF6", to: "#EC4899", label: "Purple" },
-  { from: "#22C55E", to: "#14B8A6", label: "Green" },
-  { from: "#EF4444", to: "#F97316", label: "Red" },
-];
 
 const DEFAULT_PROFILE = {
   name: "",
@@ -336,7 +314,7 @@ export default function ProfilePage() {
       {/* ── Account Information ── */}
       <div className="card overflow-hidden">
         <div className="flex items-center gap-2.5 px-5 py-3 border-b border-border bg-surface-light">
-          <div className="w-7 h-7 rounded-lg bg-blue-50 flex items-center justify-center">
+          <div className="w-7 h-7 rounded-lg bg-info-50 flex items-center justify-center">
             <Shield size={14} className="text-info" />
           </div>
           <h3 className="text-sm font-semibold text-text-primary">Account Information</h3>
@@ -382,7 +360,7 @@ export default function ProfilePage() {
       {/* ── Danger Zone ── */}
       <div className="card overflow-hidden">
         <div className="flex items-center gap-2.5 px-5 py-3 border-b border-border bg-surface-light">
-          <div className="w-7 h-7 rounded-lg bg-red-50 flex items-center justify-center">
+          <div className="w-7 h-7 rounded-lg bg-error-50 flex items-center justify-center">
             <Info size={14} className="text-error" />
           </div>
           <h3 className="text-sm font-semibold text-text-primary">Account Actions</h3>
@@ -396,7 +374,7 @@ export default function ProfilePage() {
           </div>
           <button
             onClick={handleSignOut}
-            className="flex items-center gap-2 px-4 py-2 border border-red-200 bg-red-50 hover:bg-red-100 text-error rounded-lg text-sm font-medium transition-colors"
+            className="flex items-center gap-2 px-4 py-2 border border-error/30 bg-error-50 hover:bg-error/10 text-error rounded-lg text-sm font-medium transition-colors"
           >
             <LogOut size={15} /> Sign Out
           </button>

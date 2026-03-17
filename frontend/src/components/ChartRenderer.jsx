@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import { useState, useRef } from "react";
 import {
   BarChart, Bar, LineChart, Line, PieChart, Pie, Cell,
   AreaChart, Area, ScatterChart, Scatter,
@@ -38,10 +38,10 @@ function BarChartComponent({ data, xKey, yKeys, groupBy }) {
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis dataKey={xKey} tick={{ fontSize: 11 }} angle={-30} textAnchor="end" height={60} />
             <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => v >= 1000 ? `${(v/1000).toFixed(0)}K` : v} />
-            <Tooltip content={<CustomTooltip />} />
+            <Tooltip content={<CustomTooltip />} cursor={{ fill: 'transparent' }} />
             <Legend />
             {result.groups.map((group, i) => (
-              <Bar key={group} dataKey={group} fill={CHART_COLORS[i % CHART_COLORS.length]} radius={[4, 4, 0, 0]} />
+              <Bar key={group} dataKey={group} fill={CHART_COLORS[i % CHART_COLORS.length]} radius={[4, 4, 0, 0]} background={false} />
             ))}
           </BarChart>
         </ResponsiveContainer>
@@ -54,10 +54,10 @@ function BarChartComponent({ data, xKey, yKeys, groupBy }) {
         <CartesianGrid strokeDasharray="3 3" />
         <XAxis dataKey={xKey} tick={{ fontSize: 11 }} angle={-30} textAnchor="end" height={60} />
         <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => v >= 1000 ? `${(v/1000).toFixed(0)}K` : v} />
-        <Tooltip content={<CustomTooltip />} />
+        <Tooltip content={<CustomTooltip />} cursor={{ fill: 'transparent' }} />
         <Legend />
         {yKeys.map((key, i) => (
-          <Bar key={key} dataKey={key} fill={CHART_COLORS[i % CHART_COLORS.length]} radius={[4, 4, 0, 0]} />
+          <Bar key={key} dataKey={key} fill={CHART_COLORS[i % CHART_COLORS.length]} radius={[4, 4, 0, 0]} background={false} />
         ))}
       </BarChart>
     </ResponsiveContainer>
@@ -243,7 +243,7 @@ export default function ChartRenderer({ chart, index = 0, onTypeChange }) {
 
   if (!ChartComponent) {
     return (
-      <div className="glass rounded-2xl p-6">
+      <div className="card p-5">
         <p className="text-error">Unsupported chart type: {activeType}</p>
       </div>
     );
@@ -251,7 +251,7 @@ export default function ChartRenderer({ chart, index = 0, onTypeChange }) {
 
   if (!chart.data?.length) {
     return (
-      <div className="glass rounded-2xl p-6">
+      <div className="card p-5">
         <p className="text-text-muted">No data available for this chart.</p>
       </div>
     );
@@ -270,7 +270,7 @@ export default function ChartRenderer({ chart, index = 0, onTypeChange }) {
           groupBy={chart.groupBy}
         />
       </div>
-      <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-400 font-medium">
+      <div className="mt-4 pt-3 border-t border-border flex items-center justify-between text-xs text-text-muted font-medium">
         <span>{safeData.length} records</span>
         <span className="capitalize">{activeType}</span>
       </div>
@@ -278,7 +278,7 @@ export default function ChartRenderer({ chart, index = 0, onTypeChange }) {
   );
 
   const toolbar = (
-    <div className="flex items-center gap-1 bg-slate-50/50 p-1 rounded-lg border border-slate-100/50">
+    <div className="flex items-center gap-1 bg-surface-light p-1 rounded-lg border border-border">
       <div className="flex items-center gap-0.5 mr-2">
         {CHART_TYPE_OPTIONS.map(({ type, icon: Icon, label }) => (
           <button
@@ -287,8 +287,8 @@ export default function ChartRenderer({ chart, index = 0, onTypeChange }) {
             title={label}
             className={`p-1.5 rounded-md transition-colors ${
               activeType === type
-                ? "bg-white shadow-sm ring-1 ring-slate-200/50 text-blue-600"
-                : "text-slate-400 hover:text-slate-600"
+                ? "bg-white shadow-sm ring-1 ring-border text-primary"
+                : "text-text-muted hover:text-text-secondary"
             }`}
           >
             <Icon size={14} />
@@ -298,7 +298,7 @@ export default function ChartRenderer({ chart, index = 0, onTypeChange }) {
       <button
         onClick={handleExportCSV}
         disabled={exporting}
-        className="flex items-center gap-1 px-2 py-1.5 rounded-md text-xs text-slate-500 hover:text-slate-700 hover:bg-slate-100 transition-colors disabled:opacity-50 font-medium"
+        className="flex items-center gap-1 px-2 py-1.5 rounded-md text-xs text-text-secondary hover:text-text-primary hover:bg-surface-lighter transition-colors disabled:opacity-50 font-medium"
         title="Download CSV"
       >
         <Download size={13} />
@@ -307,7 +307,7 @@ export default function ChartRenderer({ chart, index = 0, onTypeChange }) {
       <button
         onClick={handleExportPDF}
         disabled={exportPDF}
-        className="flex items-center gap-1 px-2 py-1.5 rounded-md text-xs text-slate-500 hover:text-slate-700 hover:bg-slate-100 transition-colors disabled:opacity-50 font-medium"
+        className="flex items-center gap-1 px-2 py-1.5 rounded-md text-xs text-text-secondary hover:text-text-primary hover:bg-surface-lighter transition-colors disabled:opacity-50 font-medium"
         title="Download PDF"
       >
         <Download size={13} />
@@ -315,7 +315,7 @@ export default function ChartRenderer({ chart, index = 0, onTypeChange }) {
       </button>
       <button
         onClick={() => setFullscreen(true)}
-        className="p-1.5 rounded-md text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+        className="p-1.5 rounded-md text-text-muted hover:text-text-secondary hover:bg-surface-lighter transition-colors"
         title="Fullscreen"
       >
         <Maximize2 size={13} />
@@ -326,14 +326,14 @@ export default function ChartRenderer({ chart, index = 0, onTypeChange }) {
   return (
     <>
       <div
-        className="animate-fade-in-up flex flex-col bg-white rounded-xl shadow-[0_1px_3px_0_rgb(0,0,0,0.02)] border border-slate-200/60 p-5 w-full h-full"
+        className="animate-fade-in-up flex flex-col bg-white rounded-xl shadow-[0_1px_3px_0_rgb(0,0,0,0.02)] border border-border p-5 w-full h-full"
         style={{ animationDelay: `${index * 0.15}s` }}
         id={`chart-${index}`}
       >
         <div className="flex flex-col sm:flex-row sm:items-start justify-between mb-5 gap-4">
           <div>
-            <h3 className="font-semibold text-slate-800 text-base">{chart.title || "Chart"}</h3>
-            {chart.description && <p className="text-sm text-slate-500 mt-1">{chart.description}</p>}
+            <h3 className="font-semibold text-text-primary text-base">{chart.title || "Chart"}</h3>
+            {chart.description && <p className="text-sm text-text-secondary mt-1">{chart.description}</p>}
           </div>
           {toolbar}
         </div>
@@ -341,19 +341,19 @@ export default function ChartRenderer({ chart, index = 0, onTypeChange }) {
       </div>
 
       {fullscreen && (
-        <div className="fixed inset-0 z-[100] bg-slate-900/60 flex items-center justify-center p-6 sm:p-8 animate-fade-in backdrop-blur-sm" onClick={() => setFullscreen(false)}>
+        <div className="fixed inset-0 z-[100] bg-black/60 flex items-center justify-center p-6 sm:p-8 animate-fade-in backdrop-blur-sm" onClick={() => setFullscreen(false)}>
           <div className="bg-white rounded-2xl w-full max-w-6xl max-h-[90vh] overflow-auto p-8 relative shadow-2xl" onClick={(e) => e.stopPropagation()}>
             <button
               onClick={() => setFullscreen(false)}
-              className="absolute top-4 right-4 p-2 rounded-lg bg-slate-100/50 hover:bg-slate-100 text-slate-500 hover:text-slate-700 transition-colors"
+              className="absolute top-4 right-4 p-2 rounded-lg bg-surface-light hover:bg-surface-lighter text-text-secondary hover:text-text-primary transition-colors"
             >
               <X size={20} />
             </button>
             <div className="mb-6 max-w-4xl">
-              <h2 className="text-xl font-bold text-slate-800">{chart.title}</h2>
-              {chart.description && <p className="text-base text-slate-500 mt-2">{chart.description}</p>}
+              <h2 className="text-xl font-bold text-text-primary">{chart.title}</h2>
+              {chart.description && <p className="text-base text-text-secondary mt-2">{chart.description}</p>}
             </div>
-            <div className="min-h-[60vh] w-full bg-slate-50/50 rounded-xl p-4 border border-slate-100">
+            <div className="min-h-[60vh] w-full bg-surface-light rounded-xl p-4 border border-border">
               <ChartComponent
                 data={safeData}
                 xKey={chart.xKey}

@@ -1,15 +1,37 @@
-export const CHART_COLORS = [
-  "#F97316",
-  "#3B82F6",
-  "#22C55E",
-  "#8B5CF6",
-  "#EC4899",
-  "#14B8A6",
-  "#F59E0B",
-  "#6366F1",
-  "#EF4444",
-  "#06B6D4",
+// Fallback hex values matching index.css --color-chart-* tokens.
+// At runtime we try to read the CSS custom properties so chart colors
+// stay in sync with the theme; the fallbacks are used during SSR or
+// if the DOM isn't ready yet.
+const FALLBACK_COLORS = [
+  "#F97316", "#3B82F6", "#22C55E", "#8B5CF6", "#EC4899",
+  "#14B8A6", "#F59E0B", "#6366F1", "#EF4444", "#06B6D4",
 ];
+
+function readCSSChartColors() {
+  if (typeof document === "undefined") return FALLBACK_COLORS;
+  const style = getComputedStyle(document.documentElement);
+  const colors = [];
+  for (let i = 1; i <= 8; i++) {
+    const v = style.getPropertyValue(`--color-chart-${i}`).trim();
+    if (v) colors.push(v);
+  }
+  // Append extra fallbacks so we always have at least 10 entries
+  return colors.length > 0
+    ? [...colors, ...FALLBACK_COLORS.slice(colors.length)]
+    : FALLBACK_COLORS;
+}
+
+// Lazy-initialised: resolved once on first access then cached.
+let _resolved = null;
+export const CHART_COLORS = new Proxy(FALLBACK_COLORS, {
+  get(target, prop) {
+    if (!_resolved) _resolved = readCSSChartColors();
+    if (prop === "length") return _resolved.length;
+    if (typeof prop === "string" && !isNaN(prop)) return _resolved[Number(prop)];
+    if (prop === Symbol.iterator) return () => _resolved[Symbol.iterator]();
+    return Reflect.get(_resolved, prop);
+  },
+});
 
 export function parseNumberField(val) {
   if (typeof val === "number") return val;

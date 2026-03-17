@@ -27,9 +27,13 @@
   --color-border-light: #CBD5E1;
 
   --color-success: #22C55E;
+  --color-success-50: #F0FDF4;
   --color-warning: #F59E0B;
+  --color-warning-50: #FFFBEB;
   --color-error: #EF4444;
+  --color-error-50: #FEF2F2;
   --color-info: #3B82F6;
+  --color-info-50: #EFF6FF;
 
   --font-sans: "Inter", system-ui, -apple-system, sans-serif;
 
@@ -101,20 +105,6 @@
   &:hover {
     border-color: var(--color-primary-200);
     box-shadow: 0 4px 12px rgba(249, 115, 22, 0.08), 0 1px 3px rgba(0, 0, 0, 0.04);
-  }
-}
-
-@utility glass {
-  background: var(--color-surface-card);
-  border: 1px solid var(--color-border);
-  border-radius: 12px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.02);
-}
-
-@utility glass-hover {
-  &:hover {
-    border-color: var(--color-primary-200);
-    box-shadow: 0 4px 12px rgba(249, 115, 22, 0.08);
   }
 }
 
@@ -207,19 +197,4 @@
 
 .recharts-cartesian-grid line {
   stroke: var(--color-border) !important;
-}
-
-/* ── Sidebar ── */
-.sidebar-link {
-  transition: all 0.15s ease;
-}
-.sidebar-link:hover {
-  background: var(--color-sidebar-hover);
-  color: var(--color-primary);
-}
-.sidebar-link.active {
-  background: var(--color-sidebar-active);
-  color: var(--color-primary);
-  font-weight: 600;
-  border-right: 3px solid var(--color-primary);
 }

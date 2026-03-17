@@ -24,10 +24,10 @@ export default function ExplorerPage() {
   const getTypeIcon = (type) => {
     const t = type?.toUpperCase() || "";
     if (t.includes("INT") || t.includes("DOUBLE") || t.includes("NUMERIC"))
-      return <Hash size={13} className="text-blue-500" />;
+      return <Hash size={13} className="text-info" />;
     if (t.includes("DATE") || t.includes("TIME"))
-      return <Calendar size={13} className="text-green-500" />;
-    return <Type size={13} className="text-purple-500" />;
+      return <Calendar size={13} className="text-success" />;
+    return <Type size={13} className="text-primary" />;
   };
 
   const handlePreview = async () => {

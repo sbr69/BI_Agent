@@ -41,22 +41,22 @@ export default function DashboardPage() {
       label: "Total Rows",
       value: currentDataset ? currentDataset.row_count?.toLocaleString() : "--",
       icon: BarChart3,
-      color: "text-blue-600",
-      bg: "bg-blue-50",
+      color: "text-info",
+      bg: "bg-info-50",
     },
     {
       label: "Columns",
       value: currentDataset ? currentDataset.columns?.length : "--",
       icon: TrendingUp,
-      color: "text-green-600",
-      bg: "bg-green-50",
+      color: "text-success",
+      bg: "bg-success-50",
     },
     {
       label: "Queries Run",
       value: queryHistory.length,
       icon: Clock,
-      color: "text-purple-600",
-      bg: "bg-purple-50",
+      color: "text-primary",
+      bg: "bg-primary-50",
     },
   ];
 
@@ -117,7 +117,7 @@ export default function DashboardPage() {
                   </div>
                   <button
                     onClick={() => removePin(pin.id)}
-                    className="p-1.5 rounded-lg text-text-muted hover:text-red-500 hover:bg-red-50 transition-colors"
+                    className="p-1.5 rounded-lg text-text-muted hover:text-error hover:bg-error-50 transition-colors"
                     title="Unpin"
                   >
                     <Trash2 size={14} />
@@ -128,10 +128,7 @@ export default function DashboardPage() {
                   {pin.charts?.length > 0 && (
                     <div className={`grid gap-4 ${pin.charts.length === 1 ? "grid-cols-1" : "grid-cols-1 lg:grid-cols-2"}`}>
                       {pin.charts.map((chart, i) => (
-                        <div key={i}>
-                          <h4 className="text-xs font-medium text-text-secondary mb-2">{chart.title}</h4>
-                          <ChartRenderer chart={chart} index={i} />
-                        </div>
+                        <ChartRenderer key={i} chart={chart} index={i} />
                       ))}
                     </div>
                   )}
@@ -208,13 +205,7 @@ export default function DashboardPage() {
           {latestCharts.length > 0 && (
             <div className={`grid gap-4 ${latestCharts.length === 1 ? "grid-cols-1" : "grid-cols-1 lg:grid-cols-2"}`}>
               {latestCharts.map((chart, i) => (
-                <div key={i} className="card p-5">
-                  <h3 className="text-sm font-semibold text-text-primary mb-1">{chart.title}</h3>
-                  {chart.description && (
-                    <p className="text-xs text-text-muted mb-3">{chart.description}</p>
-                  )}
-                  <ChartRenderer chart={chart} index={i} />
-                </div>
+                <ChartRenderer key={i} chart={chart} index={i} />
               ))}
             </div>
           )}

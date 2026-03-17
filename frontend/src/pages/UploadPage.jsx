@@ -1,7 +1,6 @@
 import { useAppContext } from "../components/layout/Layout";
 import FileUpload from "../components/FileUpload";
 import {
-  Upload,
   FileSpreadsheet,
   Database,
   CheckCircle2,

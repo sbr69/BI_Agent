@@ -71,13 +71,13 @@ export default function SettingsPage() {
           <div className="flex items-center gap-3">
             <div
               className={`w-10 h-10 rounded-xl flex items-center justify-center ${
-                backendConnected ? "bg-green-50" : "bg-red-50"
+                backendConnected ? "bg-success-50" : "bg-error-50"
               }`}
             >
               {backendConnected ? (
-                <Wifi size={18} className="text-green-600" />
+                <Wifi size={18} className="text-success" />
               ) : (
-                <WifiOff size={18} className="text-red-500" />
+                <WifiOff size={18} className="text-error" />
               )}
             </div>
             <div>
