@@ -1,11 +1,11 @@
 """
-System prompt templates for Gemini LLM.
+System prompt templates for Groq/Llama LLM.
 """
 
 
 def get_system_prompt(schema: str) -> str:
     """
-    Build the system prompt that guides Gemini to generate SQL + chart configs.
+    Build the system prompt that guides the LLM to generate SQL + chart configs.
     """
     return f"""You are an expert Business Intelligence assistant that converts natural language questions into SQL queries and chart configurations.
 

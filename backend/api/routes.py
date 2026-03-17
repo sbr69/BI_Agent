@@ -3,8 +3,10 @@ API Routes — endpoints for querying, datasets, upload, and health.
 """
 
 import os
+import re
 import time
 import shutil
+import uuid
 from fastapi import APIRouter, UploadFile, File, Form, HTTPException
 from typing import Optional
 
@@ -22,6 +24,19 @@ router = APIRouter(prefix="/api")
 
 # In-memory session store for conversation context
 _sessions: dict[str, list[dict]] = {}
+
+# Constraints
+MAX_SESSIONS = 1000
+MAX_UPLOAD_SIZE = 50 * 1024 * 1024  # 50 MB
+_SESSION_ID_RE = re.compile(r"^[a-zA-Z0-9_-]{1,64}$")
+_SAFE_FILENAME_RE = re.compile(r"^[a-zA-Z0-9_\- ]+\.csv$")
+
+
+def _validate_session_id(session_id: str) -> str:
+    """Validate and return a safe session ID."""
+    if not _SESSION_ID_RE.match(session_id):
+        raise HTTPException(status_code=400, detail="Invalid session_id format")
+    return session_id
 
 
 @router.get("/health", response_model=HealthResponse)
@@ -72,8 +87,8 @@ async def process_query(request: QueryRequest):
     # Build schema context
     schema = get_schema_description(target_table)
 
-    # Check for conversation history (follow-up support)
-    session_id = request.session_id or "default"
+    # Validate session ID
+    session_id = _validate_session_id(request.session_id) if request.session_id else "default"
     history = _sessions.get(session_id, [])
 
     # Build prompt
@@ -104,20 +119,19 @@ async def process_query(request: QueryRequest):
     charts = []
     query_results = []
 
-    for i, q in enumerate(llm_response.get("sql_queries", [])):
+    for q in llm_response.get("sql_queries", []):
         try:
             result = query_engine.execute_query(q["sql"])
             query_results.append(result)
         except ValueError as e:
             query_results.append([])
-            # Add error as an insight
             llm_response.setdefault("insights", []).append(f"Query error: {str(e)}")
 
     for chart_config in llm_response.get("charts", []):
         sql_idx = chart_config.get("sql_index", 0)
         data = query_results[sql_idx] if sql_idx < len(query_results) else []
 
-        if data:  # Only include charts with data
+        if data:
             charts.append(ChartConfig(
                 type=chart_config["type"],
                 title=chart_config.get("title", "Chart"),
@@ -129,14 +143,18 @@ async def process_query(request: QueryRequest):
                 colorScheme=chart_config.get("colorScheme", "default")
             ))
 
-    # Save to session history
+    # Save to session history (cap total sessions to prevent memory abuse)
+    if session_id not in _sessions and len(_sessions) >= MAX_SESSIONS:
+        oldest = next(iter(_sessions))
+        del _sessions[oldest]
+
     _sessions.setdefault(session_id, []).append({
         "prompt": request.prompt,
         "sql_queries": llm_response.get("sql_queries", []),
         "charts_count": len(charts)
     })
 
-    # Keep only last 10 entries
+    # Keep only last 10 entries per session
     if len(_sessions[session_id]) > 10:
         _sessions[session_id] = _sessions[session_id][-10:]
 
@@ -161,17 +179,35 @@ async def upload_csv(
     table_name: Optional[str] = Form(None)
 ):
     """Upload a CSV file and make it queryable."""
+    # Validate filename
     if not file.filename or not file.filename.lower().endswith(".csv"):
         raise HTTPException(status_code=400, detail="Only CSV files are supported")
+
+    # Sanitize filename to prevent path traversal
+    safe_filename = os.path.basename(file.filename)
+    if not _SAFE_FILENAME_RE.match(safe_filename):
+        raise HTTPException(status_code=400, detail="Invalid filename. Use only letters, numbers, dashes, underscores, and spaces.")
+
+    # Validate file size by reading into memory (avoids writing oversized files to disk)
+    contents = await file.read()
+    if len(contents) > MAX_UPLOAD_SIZE:
+        raise HTTPException(status_code=413, detail=f"File too large. Maximum size is {MAX_UPLOAD_SIZE // (1024*1024)} MB")
+
+    # Validate table_name if provided
+    if table_name:
+        sanitized = re.sub(r"[^a-z0-9_]", "", table_name.lower())
+        if not sanitized or not re.match(r"^[a-z][a-z0-9_]*$", sanitized):
+            raise HTTPException(status_code=400, detail="Invalid table name. Use lowercase letters, numbers, and underscores only.")
+        table_name = sanitized
 
     # Save uploaded file
     upload_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "uploads")
     os.makedirs(upload_dir, exist_ok=True)
-    filepath = os.path.join(upload_dir, file.filename)
+    filepath = os.path.join(upload_dir, safe_filename)
 
     try:
         with open(filepath, "wb") as f:
-            shutil.copyfileobj(file.file, f)
+            f.write(contents)
 
         # Load into query engine
         actual_table_name = query_engine.load_csv(filepath, table_name)
@@ -185,7 +221,7 @@ async def upload_csv(
                 ColumnInfo(name=c["name"], type=c["type"])
                 for c in info["columns"]
             ],
-            message=f"Successfully loaded '{file.filename}' as table '{actual_table_name}' with {info['row_count']} rows"
+            message=f"Successfully loaded '{safe_filename}' as table '{actual_table_name}' with {info['row_count']} rows"
         )
 
     except Exception as e:
@@ -198,6 +234,7 @@ async def upload_csv(
 @router.delete("/session/{session_id}")
 async def clear_session(session_id: str):
     """Clear conversation history for a session."""
+    session_id = _validate_session_id(session_id)
     if session_id in _sessions:
         del _sessions[session_id]
     return {"message": "Session cleared"}
