@@ -1,15 +1,36 @@
-const API_BASE = import.meta.env.VITE_API_BASE || 'http://127.0.0.1:8000/api';
-const API_KEY = import.meta.env.VITE_API_KEY || '';
+import { supabase } from './supabase';
 
-function authHeaders(extra = {}) {
+const API_BASE = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
+const API_PATH = `${API_BASE}/api`;
+
+/**
+ * Get the current auth token from Supabase session.
+ * Returns null if not authenticated.
+ */
+async function getAuthToken() {
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    return session?.access_token || null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Build headers with auth token for API requests.
+ */
+async function authHeaders(extra = {}) {
   const headers = { ...extra };
-  if (API_KEY) headers['X-API-Key'] = API_KEY;
+  const token = await getAuthToken();
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
   return headers;
 }
 
 async function fetchWithRetry(url, options = {}, retries = 1) {
-  // Inject API key header into every request
-  options.headers = authHeaders(options.headers || {});
+  // Inject auth header into every request
+  options.headers = await authHeaders(options.headers || {});
   try {
     const res = await fetch(url, options);
     if (!res.ok) {
@@ -19,6 +40,10 @@ async function fetchWithRetry(url, options = {}, retries = 1) {
         errDetail = err.detail || err.message || errDetail;
       } catch {
         // Ignore JSON parsing errors for error bodies
+      }
+      // If unauthorized, don't retry - let the app handle it
+      if (res.status === 401) {
+        throw new Error('Authentication required. Please log in again.');
       }
       throw new Error(errDetail);
     }
@@ -44,7 +69,7 @@ export async function sendQuery(prompt, sessionId = null, dataset = null, dateFr
   if (dateFrom) body.date_from = dateFrom;
   if (dateTo) body.date_to = dateTo;
 
-  return fetchJson(`${API_BASE}/query`, {
+  return fetchJson(`${API_PATH}/query`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
@@ -52,11 +77,11 @@ export async function sendQuery(prompt, sessionId = null, dataset = null, dateFr
 }
 
 export async function fetchDatasets() {
-  return fetchJson(`${API_BASE}/datasets`);
+  return fetchJson(`${API_PATH}/datasets`);
 }
 
 export async function deleteDataset(datasetName) {
-  return fetchJson(`${API_BASE}/datasets/${encodeURIComponent(datasetName)}`, {
+  return fetchJson(`${API_PATH}/datasets/${encodeURIComponent(datasetName)}`, {
     method: 'DELETE'
   });
 }
@@ -66,23 +91,23 @@ export async function uploadCSV(file, tableName = null) {
   formData.append('file', file);
   if (tableName) formData.append('table_name', tableName);
 
-  return fetchJson(`${API_BASE}/upload`, {
+  return fetchJson(`${API_PATH}/upload`, {
     method: 'POST',
     body: formData,
   });
 }
 
 export async function checkHealth() {
-  return fetchJson(`${API_BASE}/health`);
+  return fetchJson(`${API_PATH}/health`);
 }
 
 export async function fetchPreview(dataset, limit = 100) {
-  return fetchJson(`${API_BASE}/preview/${encodeURIComponent(dataset)}?limit=${limit}`);
+  return fetchJson(`${API_PATH}/preview/${encodeURIComponent(dataset)}?limit=${limit}`);
 }
 
 // Export chart data as CSV
 export async function exportChartCSV(data, title) {
-  const res = await fetchWithRetry(`${API_BASE}/export/chart-csv`, {
+  const res = await fetchWithRetry(`${API_PATH}/export/chart-csv`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ data, title }),
@@ -98,7 +123,7 @@ export async function exportChartCSV(data, title) {
 
 // Pin a dashboard tile
 export async function pinDashboard(payload) {
-  return fetchJson(`${API_BASE}/pins`, {
+  return fetchJson(`${API_PATH}/pins`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
@@ -107,22 +132,22 @@ export async function pinDashboard(payload) {
 
 // List all pinned dashboards
 export async function fetchPins() {
-  return fetchJson(`${API_BASE}/pins`);
+  return fetchJson(`${API_PATH}/pins`);
 }
 
 // Delete a pinned dashboard
 export async function deletePin(pinId) {
-  return fetchJson(`${API_BASE}/pins/${pinId}`, { method: 'DELETE' });
+  return fetchJson(`${API_PATH}/pins/${pinId}`, { method: 'DELETE' });
 }
 
 // Get session history
 export async function fetchSession(sessionId) {
-  return fetchJson(`${API_BASE}/session/${encodeURIComponent(sessionId)}`);
+  return fetchJson(`${API_PATH}/session/${encodeURIComponent(sessionId)}`);
 }
 
 // Scheduled reports
 export async function createSchedule(payload) {
-  return fetchJson(`${API_BASE}/schedules`, {
+  return fetchJson(`${API_PATH}/schedules`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
@@ -130,13 +155,13 @@ export async function createSchedule(payload) {
 }
 
 export async function fetchSchedules() {
-  return fetchJson(`${API_BASE}/schedules`);
+  return fetchJson(`${API_PATH}/schedules`);
 }
 
 export async function deleteSchedule(id) {
-  return fetchJson(`${API_BASE}/schedules/${id}`, { method: 'DELETE' });
+  return fetchJson(`${API_PATH}/schedules/${id}`, { method: 'DELETE' });
 }
 
 export async function toggleSchedule(id) {
-  return fetchJson(`${API_BASE}/schedules/${id}/toggle`, { method: 'POST' });
+  return fetchJson(`${API_PATH}/schedules/${id}/toggle`, { method: 'POST' });
 }

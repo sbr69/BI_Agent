@@ -1,5 +1,5 @@
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
 import {
   LayoutDashboard,
   MessageSquareText,
@@ -13,7 +13,8 @@ import {
   X,
   LogOut,
 } from "lucide-react";
-import { AVATAR_COLORS, getInitials, loadProfile } from "../../utils/constants";
+import { AVATAR_COLORS, getInitials } from "../../utils/constants";
+import { useAuth } from "../../context/AuthContext";
 
 const NAV_ITEMS = [
   { to: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
@@ -24,7 +25,7 @@ const NAV_ITEMS = [
 ];
 
 export default function Sidebar({ collapsed, onToggle, isMobile, onClose }) {
-  const [profile, setProfile] = useState(loadProfile);
+  const { user, signOut } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -33,28 +34,18 @@ export default function Sidebar({ collapsed, onToggle, isMobile, onClose }) {
     if (isMobile && onClose) onClose();
   }, [location.pathname]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Refresh when profile is saved from ProfilePage (same tab) or another tab
-  useEffect(() => {
-    function onUpdate() { setProfile(loadProfile()); }
-    window.addEventListener("bi_profile_updated", onUpdate);
-    window.addEventListener("storage", onUpdate);
-    return () => {
-      window.removeEventListener("bi_profile_updated", onUpdate);
-      window.removeEventListener("storage", onUpdate);
-    };
-  }, []);
-
-  const handleLogout = () => {
-    // Clear user profile from localStorage
-    localStorage.removeItem("bi_agent_user_profile");
-    // Navigate to landing page
+  const handleLogout = async () => {
+    await signOut();
     navigate("/landing");
   };
 
-  const colorIdx = profile?.avatarColor ?? 0;
-  const color = AVATAR_COLORS[colorIdx] || AVATAR_COLORS[0];
-  const initials = getInitials(profile?.name);
-  const displayName = profile?.name || profile?.username || "My Profile";
+  // Get user metadata from Supabase user
+  const userMetadata = user?.user_metadata || {};
+  const displayName = userMetadata.full_name || userMetadata.username || user?.email?.split("@")[0] || "User";
+  const avatarColorIdx = userMetadata.avatar_color ?? 0;
+  const color = AVATAR_COLORS[avatarColorIdx] || AVATAR_COLORS[0];
+  const initials = getInitials(displayName);
+  const role = userMetadata.role || "Analyst";
   const isExpanded = isMobile || !collapsed;
 
   return (
@@ -147,7 +138,7 @@ export default function Sidebar({ collapsed, onToggle, isMobile, onClose }) {
                   className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 shadow-sm"
                   style={{ background: `linear-gradient(135deg, ${color.from}, ${color.to})` }}
                 >
-                  {(profile?.name || profile?.username) ? (
+                  {displayName ? (
                     <span className="text-xs font-bold text-white select-none">{initials}</span>
                   ) : (
                     <UserCircle2 size={16} className="text-white" />
@@ -161,7 +152,7 @@ export default function Sidebar({ collapsed, onToggle, isMobile, onClose }) {
                       {displayName}
                     </p>
                     <p className="text-[10px] text-text-muted truncate">
-                      {profile?.role || "View profile"}
+                      {role || "View profile"}
                     </p>
                   </div>
                 )}

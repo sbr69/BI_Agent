@@ -1,9 +1,11 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { BarChart3, Mail, Lock, Eye, EyeOff, AlertCircle, Loader2 } from "lucide-react";
+import { useAuth } from "../context/AuthContext";
 
 export default function LoginPage() {
   const navigate = useNavigate();
+  const { signIn } = useAuth();
   const [form, setForm] = useState({ email: "", password: "" });
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
@@ -26,29 +28,15 @@ export default function LoginPage() {
       return setError("Password must be at least 6 characters.");
 
     setLoading(true);
-    // Simulate async auth — replace with real API call
-    await new Promise((r) => setTimeout(r, 900));
+
+    const { error: authError } = await signIn(form.email.trim(), form.password);
+
     setLoading(false);
 
-    // If no profile exists yet, create a minimal one from the login email
-    try {
-      const existing = localStorage.getItem("bi_agent_user_profile");
-      if (!existing) {
-        localStorage.setItem(
-          "bi_agent_user_profile",
-          JSON.stringify({
-            name: "",
-            username: form.email.split("@")[0],
-            email: form.email.trim(),
-            phone: "",
-            bio: "",
-            role: "Analyst",
-            avatarColor: 0,
-            joinedAt: new Date().toISOString(),
-          })
-        );
-      }
-    } catch { /* ignore */ }
+    if (authError) {
+      setError(authError.message || "Invalid email or password.");
+      return;
+    }
 
     navigate("/dashboard");
   }

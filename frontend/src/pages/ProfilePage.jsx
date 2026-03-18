@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Building2,
@@ -13,33 +13,37 @@ import {
   Shield,
   Info,
   Calendar,
+  Loader2,
 } from "lucide-react";
-import { AVATAR_COLORS, getInitials, loadProfile } from "../utils/constants";
-
-const PROFILE_KEY = "bi_agent_user_profile";
-
-function saveProfile(data) {
-  try {
-    localStorage.setItem(PROFILE_KEY, JSON.stringify(data));
-  } catch { /* ignore */ }
-}
-
-const DEFAULT_PROFILE = {
-  name: "",
-  email: "",
-  avatarColor: 0,
-  joinedAt: new Date().toISOString(),
-};
+import { AVATAR_COLORS, getInitials } from "../utils/constants";
+import { useAuth } from "../context/AuthContext";
+import { supabase } from "../utils/supabase";
 
 export default function ProfilePage() {
   const navigate = useNavigate();
-  const [profile, setProfile] = useState(() => loadProfile() || DEFAULT_PROFILE);
-  const [editing, setEditing] = useState(() => !localStorage.getItem(PROFILE_KEY));
-  const [draft, setDraft] = useState(profile);
+  const { user, signOut } = useAuth();
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState({});
   const [saved, setSaved] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState({});
   const [showColorPicker, setShowColorPicker] = useState(false);
-  const [fallbackDate] = useState(() => Date.now());
+
+  // Extract profile data from Supabase user metadata
+  const userMetadata = user?.user_metadata || {};
+  const profile = {
+    name: userMetadata.full_name || "",
+    email: user?.email || "",
+    avatarColor: userMetadata.avatar_color ?? 0,
+    joinedAt: user?.created_at || new Date().toISOString(),
+  };
+
+  useEffect(() => {
+    // Initialize draft when editing starts
+    if (editing) {
+      setDraft({ ...profile });
+    }
+  }, [editing]); // eslint-disable-line react-hooks/exhaustive-deps
 
   function handleEdit() {
     setDraft({ ...profile });
@@ -48,28 +52,40 @@ export default function ProfilePage() {
   }
 
   function handleCancel() {
-    setDraft(profile);
+    setDraft({});
     setErrors({});
     setEditing(false);
   }
 
   function validate(d) {
     const e = {};
-    if (!d.name.trim()) e.name = "Organization name is required.";
-    if (!d.email.trim()) e.email = "Email is required.";
-    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(d.email))
-      e.email = "Enter a valid email.";
+    if (!d.name?.trim()) e.name = "Organization name is required.";
     return e;
   }
 
-  function handleSave() {
+  async function handleSave() {
     const e = validate(draft);
-    if (Object.keys(e).length) { setErrors(e); return; }
-    const updated = { ...draft };
-    setProfile(updated);
-    saveProfile(updated);
-    // Notify Sidebar (same tab) to refresh
-    window.dispatchEvent(new CustomEvent("bi_profile_updated"));
+    if (Object.keys(e).length) {
+      setErrors(e);
+      return;
+    }
+
+    setSaving(true);
+
+    const { error: updateError } = await supabase.auth.updateUser({
+      data: {
+        full_name: draft.name?.trim(),
+        avatar_color: draft.avatarColor,
+      },
+    });
+
+    setSaving(false);
+
+    if (updateError) {
+      setErrors({ general: updateError.message });
+      return;
+    }
+
     setEditing(false);
     setSaved(true);
     setTimeout(() => setSaved(false), 2500);
@@ -77,19 +93,26 @@ export default function ProfilePage() {
 
   function handleChange(field, value) {
     setDraft((prev) => ({ ...prev, [field]: value }));
-    if (errors[field]) setErrors((prev) => { const n = { ...prev }; delete n[field]; return n; });
+    if (errors[field]) {
+      setErrors((prev) => {
+        const n = { ...prev };
+        delete n[field];
+        return n;
+      });
+    }
   }
 
-  function handleSignOut() {
+  async function handleSignOut() {
+    await signOut();
     navigate("/landing");
   }
 
-  const color = AVATAR_COLORS[profile.avatarColor ?? 0];
-  const initials = getInitials(profile.name || draft.name || "U");
+  const color = AVATAR_COLORS[editing ? draft.avatarColor ?? 0 : profile.avatarColor];
+  const initials = getInitials(editing ? draft.name : profile.name);
 
   return (
     <div className="space-y-6 animate-fade-in-up max-w-3xl">
-      {/* ── Page Header ── */}
+      {/* Page Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-text-primary">Organization Profile</h1>
@@ -114,22 +137,37 @@ export default function ProfilePage() {
             <div className="flex items-center gap-2">
               <button
                 onClick={handleCancel}
-                className="flex items-center gap-1.5 px-3 py-2 border border-border hover:bg-surface-light text-text-secondary rounded-lg text-sm font-medium transition-colors"
+                disabled={saving}
+                className="flex items-center gap-1.5 px-3 py-2 border border-border hover:bg-surface-light text-text-secondary rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
               >
                 <X size={15} /> Cancel
               </button>
               <button
                 onClick={handleSave}
-                className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary-dark text-white rounded-lg text-sm font-medium transition-colors"
+                disabled={saving}
+                className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary-dark text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
               >
-                <Save size={15} /> Save Changes
+                {saving ? (
+                  <Loader2 size={15} className="animate-spin" />
+                ) : (
+                  <Save size={15} />
+                )}
+                Save Changes
               </button>
             </div>
           )}
         </div>
       </div>
 
-      {/* ── Avatar + Identity Card ── */}
+      {/* General error */}
+      {errors.general && (
+        <div className="flex items-center gap-2 px-4 py-3 rounded-lg bg-red-50 border border-red-200 text-sm text-error">
+          <AlertCircle size={16} className="shrink-0" />
+          {errors.general}
+        </div>
+      )}
+
+      {/* Avatar + Identity Card */}
       <div className="card p-6">
         <div className="flex items-start gap-5">
           {/* Avatar */}
@@ -176,7 +214,7 @@ export default function ProfilePage() {
               <div className="space-y-3">
                 <div>
                   <input
-                    value={draft.name}
+                    value={draft.name || ""}
                     onChange={(e) => handleChange("name", e.target.value)}
                     placeholder="Organization name"
                     className={`w-full text-lg font-semibold px-3 py-2 border rounded-lg bg-white text-text-primary placeholder-text-muted focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all ${
@@ -195,13 +233,14 @@ export default function ProfilePage() {
                 <h2 className="text-xl font-bold text-text-primary truncate">
                   {profile.name || <span className="text-text-muted italic">No organization name set</span>}
                 </h2>
+                <p className="text-sm text-text-muted mt-1">{profile.email}</p>
               </>
             )}
           </div>
         </div>
       </div>
 
-      {/* ── Organization Information ── */}
+      {/* Organization Information */}
       <div className="card overflow-hidden">
         <div className="flex items-center gap-2.5 px-5 py-3 border-b border-border bg-surface-light">
           <div className="w-7 h-7 rounded-lg bg-primary-50 flex items-center justify-center">
@@ -220,21 +259,19 @@ export default function ProfilePage() {
             placeholder="Your Organization"
             error={errors.name}
           />
-          {/* Email */}
+          {/* Email (read-only) */}
           <Field
             label="Email Address"
             icon={Mail}
-            editing={editing}
-            value={editing ? draft.email : profile.email}
-            onChange={(v) => handleChange("email", v)}
+            editing={false}
+            value={profile.email}
             placeholder="org@example.com"
             type="email"
-            error={errors.email}
           />
         </div>
       </div>
 
-      {/* ── Account Information ── */}
+      {/* Account Information */}
       <div className="card overflow-hidden">
         <div className="flex items-center gap-2.5 px-5 py-3 border-b border-border bg-surface-light">
           <div className="w-7 h-7 rounded-lg bg-info-50 flex items-center justify-center">
@@ -251,7 +288,7 @@ export default function ProfilePage() {
             <div className="flex items-center gap-2">
               <Calendar size={14} className="text-text-muted shrink-0" />
               <span className="text-sm text-text-primary">
-                {new Date(profile.joinedAt || fallbackDate).toLocaleDateString("en-US", {
+                {new Date(profile.joinedAt).toLocaleDateString("en-US", {
                   year: "numeric",
                   month: "long",
                   day: "numeric",
@@ -262,7 +299,7 @@ export default function ProfilePage() {
         </div>
       </div>
 
-      {/* ── Danger Zone ── */}
+      {/* Danger Zone */}
       <div className="card overflow-hidden">
         <div className="flex items-center gap-2.5 px-5 py-3 border-b border-border bg-surface-light">
           <div className="w-7 h-7 rounded-lg bg-error-50 flex items-center justify-center">
@@ -289,8 +326,8 @@ export default function ProfilePage() {
   );
 }
 
-/* ── Reusable field component ── */
-function Field({ label, icon: Icon, editing, value, onChange, placeholder, type = "text", error, prefix }) {
+/* Reusable field component */
+function Field({ label, icon: Icon, editing, value, onChange, placeholder, type = "text", error }) {
   return (
     <div>
       <label className="block text-xs font-medium text-text-secondary mb-1.5">{label}</label>
@@ -303,19 +340,16 @@ function Field({ label, icon: Icon, editing, value, onChange, placeholder, type 
                 className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none"
               />
             )}
-            {prefix && (
-              <span className="absolute left-9 top-1/2 -translate-y-1/2 text-sm text-text-muted pointer-events-none">
-                {prefix}
-              </span>
-            )}
             <input
               type={type}
               value={value || ""}
               onChange={(e) => onChange(e.target.value)}
               placeholder={placeholder}
-              className={`w-full py-2.5 text-sm border rounded-lg bg-white text-text-primary placeholder-text-muted focus:outline-none focus:ring-2 transition-all ${
-                prefix ? "pl-12 pr-3" : "pl-9 pr-3"
-              } ${error ? "border-error focus:border-error focus:ring-error/10" : "border-border focus:border-primary focus:ring-primary/10"}`}
+              className={`w-full py-2.5 text-sm border rounded-lg bg-white text-text-primary placeholder-text-muted focus:outline-none focus:ring-2 transition-all pl-9 pr-3 ${
+                error
+                  ? "border-error focus:border-error focus:ring-error/10"
+                  : "border-border focus:border-primary focus:ring-primary/10"
+              }`}
             />
           </div>
           {error && (
@@ -328,10 +362,7 @@ function Field({ label, icon: Icon, editing, value, onChange, placeholder, type 
         <div className="flex items-center gap-2 min-h-[32px]">
           {Icon && <Icon size={14} className="text-text-muted shrink-0" />}
           <span className="text-sm text-text-primary">
-            {value
-              ? prefix ? `${prefix}${value}` : value
-              : <span className="italic text-text-muted">Not set</span>
-            }
+            {value || <span className="italic text-text-muted">Not set</span>}
           </span>
         </div>
       )}

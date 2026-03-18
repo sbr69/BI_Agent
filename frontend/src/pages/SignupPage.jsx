@@ -11,6 +11,7 @@ import {
   CheckCircle2,
   Loader2,
 } from "lucide-react";
+import { useAuth } from "../context/AuthContext";
 
 const PASSWORD_RULES = [
   { label: "At least 8 characters", test: (v) => v.length >= 8 },
@@ -20,6 +21,7 @@ const PASSWORD_RULES = [
 
 export default function SignupPage() {
   const navigate = useNavigate();
+  const { signUp } = useAuth();
   const [form, setForm] = useState({
     name: "",
     email: "",
@@ -31,6 +33,7 @@ export default function SignupPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [passwordFocused, setPasswordFocused] = useState(false);
+  const [success, setSuccess] = useState(false);
 
   function handleChange(e) {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
@@ -52,31 +55,28 @@ export default function SignupPage() {
       return setError("Passwords do not match.");
 
     setLoading(true);
-    // Simulate async registration — replace with real API call
-    await new Promise((r) => setTimeout(r, 1100));
+
+    const { data, error: authError } = await signUp(
+      form.email.trim(),
+      form.password,
+      {
+        full_name: form.name.trim(),
+        username: form.name.trim().toLowerCase().replace(/\s+/g, "_"),
+      }
+    );
+
     setLoading(false);
 
-    // Seed profile in localStorage so ProfilePage has data on first visit
-    const nameParts = form.name.trim().split(" ").filter(Boolean);
-    const username =
-      (nameParts[0] || "user").toLowerCase().replace(/[^a-z0-9]/g, "") +
-      "_" +
-      Math.floor(1000 + Math.random() * 9000);
-    try {
-      localStorage.setItem(
-        "bi_agent_user_profile",
-        JSON.stringify({
-          name: form.name.trim(),
-          username,
-          email: form.email.trim(),
-          phone: "",
-          bio: "",
-          role: "Analyst",
-          avatarColor: 0,
-          joinedAt: new Date().toISOString(),
-        })
-      );
-    } catch { /* ignore */ }
+    if (authError) {
+      setError(authError.message || "Failed to create account.");
+      return;
+    }
+
+    // If confirmation is required, show success message
+    if (data?.user && !data.session) {
+      setSuccess(true);
+      return;
+    }
 
     navigate("/dashboard");
   }
@@ -116,17 +116,39 @@ export default function SignupPage() {
               <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-primary to-accent flex items-center justify-center mx-auto mb-4 shadow-md">
                 <BarChart3 size={22} className="text-white" />
               </div>
-              <h1 className="text-xl font-bold text-text-primary">Create your account</h1>
-              <p className="text-xs text-text-muted">Start analysing your data in seconds</p>
+              <h1 className="text-xl font-bold text-text-primary">
+                {success ? "Check your email" : "Create your account"}
+              </h1>
+              <p className="text-xs text-text-muted">
+                {success
+                  ? "We sent a confirmation link to your email"
+                  : "Start analysing your data in seconds"}
+              </p>
             </div>
 
-            {/* Error banner */}
-            {error && (
-              <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg bg-red-50 border border-red-200 text-xs text-error">
-                <AlertCircle size={14} className="shrink-0" />
-                {error}
+            {/* Success message */}
+            {success ? (
+              <div className="space-y-4">
+                <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg bg-green-50 border border-green-200 text-xs text-success">
+                  <CheckCircle2 size={14} className="shrink-0" />
+                  Please check your email and click the confirmation link to complete your registration.
+                </div>
+                <Link
+                  to="/login"
+                  className="w-full flex items-center justify-center py-2.5 bg-primary hover:bg-primary-dark text-white rounded-lg text-sm font-semibold transition-colors shadow-sm"
+                >
+                  Go to Sign in
+                </Link>
               </div>
-            )}
+            ) : (
+              <>
+                {/* Error banner */}
+                {error && (
+                  <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg bg-red-50 border border-red-200 text-xs text-error">
+                    <AlertCircle size={14} className="shrink-0" />
+                    {error}
+                  </div>
+                )}
 
             {/* Form */}
             <form onSubmit={handleSubmit} className="space-y-4" noValidate>
@@ -333,6 +355,8 @@ export default function SignupPage() {
             >
               Sign in
             </Link>
+              </>
+            )}
           </div>
 
           {/* Back */}

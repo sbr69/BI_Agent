@@ -11,7 +11,9 @@ import uuid
 import json
 from collections import defaultdict
 from datetime import datetime
-from fastapi import APIRouter, UploadFile, File, Form, HTTPException, Request
+from typing import Optional
+from fastapi import APIRouter, UploadFile, File, Form, HTTPException, Request, Depends
+
 from fastapi.responses import StreamingResponse
 
 from api.models import (
@@ -25,6 +27,7 @@ from core.query_engine import query_engine
 from core.schema import get_schema_description, get_datasets_info, invalidate_schema_cache
 from core.llm import get_llm_client
 from core.prompts import get_system_prompt, get_followup_prompt
+from core.auth import get_current_user, get_optional_user, AuthenticatedUser
 
 router = APIRouter(prefix="/api")
 
@@ -131,12 +134,12 @@ def list_datasets():
     )
 
 @router.delete("/datasets/{dataset_name}")
-def delete_dataset(dataset_name: str):
-    """Delete a dataset and its underlying table."""
+def delete_dataset(dataset_name: str, user: AuthenticatedUser = Depends(get_current_user)):
+    """Delete a dataset and its underlying table. Requires authentication."""
     tables = query_engine.get_table_names()
     if dataset_name not in tables:
         raise HTTPException(status_code=404, detail="Dataset not found")
-    
+
     try:
         query_engine.remove_table(dataset_name)
         invalidate_schema_cache()
@@ -146,8 +149,8 @@ def delete_dataset(dataset_name: str):
 
 
 @router.post("/query", response_model=QueryResponse)
-def process_query(request: QueryRequest, req: Request):
-    """Process a natural language query and return chart data."""
+def process_query(request: QueryRequest, req: Request, user: AuthenticatedUser = Depends(get_current_user)):
+    """Process a natural language query and return chart data. Requires authentication."""
     _check_rate_limit(req)
     start_time = time.time()
 
@@ -309,8 +312,8 @@ def process_query(request: QueryRequest, req: Request):
 # ---------------------------------------------------------------------------
 
 @router.post("/export/chart-csv")
-def export_chart_csv(payload: dict, req: Request):
-    """Export chart data as a downloadable CSV file."""
+def export_chart_csv(payload: dict, req: Request, user: AuthenticatedUser = Depends(get_current_user)):
+    """Export chart data as a downloadable CSV file. Requires authentication."""
     _check_rate_limit(req)
     data = payload.get("data", [])
     title = payload.get("title", "export")
@@ -340,8 +343,8 @@ def export_chart_csv(payload: dict, req: Request):
 # ---------------------------------------------------------------------------
 
 @router.post("/pins")
-def pin_dashboard(payload: PinRequest):
-    """Save/pin a dashboard tile for persistence."""
+def pin_dashboard(payload: PinRequest, user: AuthenticatedUser = Depends(get_current_user)):
+    """Save/pin a dashboard tile for persistence. Requires authentication."""
     pin_id = str(uuid.uuid4())[:8]
     now = datetime.now().isoformat()
     pinned = {
@@ -359,14 +362,14 @@ def pin_dashboard(payload: PinRequest):
 
 
 @router.get("/pins")
-def list_pins():
-    """List all pinned dashboards."""
+def list_pins(user: AuthenticatedUser = Depends(get_current_user)):
+    """List all pinned dashboards. Requires authentication."""
     return {"pins": list(_pinned_dashboards.values())}
 
 
 @router.delete("/pins/{pin_id}")
-def delete_pin(pin_id: str):
-    """Remove a pinned dashboard."""
+def delete_pin(pin_id: str, user: AuthenticatedUser = Depends(get_current_user)):
+    """Remove a pinned dashboard. Requires authentication."""
     if pin_id in _pinned_dashboards:
         del _pinned_dashboards[pin_id]
         return {"message": "Pin removed"}
@@ -378,8 +381,8 @@ def delete_pin(pin_id: str):
 # ---------------------------------------------------------------------------
 
 @router.post("/schedules")
-def create_schedule(payload: ScheduleRequest):
-    """Create a scheduled report."""
+def create_schedule(payload: ScheduleRequest, user: AuthenticatedUser = Depends(get_current_user)):
+    """Create a scheduled report. Requires authentication."""
     schedule_id = str(uuid.uuid4())[:8]
     now = datetime.now().isoformat()
     schedule = {
@@ -398,14 +401,14 @@ def create_schedule(payload: ScheduleRequest):
 
 
 @router.get("/schedules")
-def list_schedules():
-    """List all scheduled reports."""
+def list_schedules(user: AuthenticatedUser = Depends(get_current_user)):
+    """List all scheduled reports. Requires authentication."""
     return {"schedules": list(_scheduled_reports.values())}
 
 
 @router.delete("/schedules/{schedule_id}")
-def delete_schedule(schedule_id: str):
-    """Remove a scheduled report."""
+def delete_schedule(schedule_id: str, user: AuthenticatedUser = Depends(get_current_user)):
+    """Remove a scheduled report. Requires authentication."""
     if schedule_id in _scheduled_reports:
         del _scheduled_reports[schedule_id]
         return {"message": "Schedule removed"}
@@ -413,8 +416,8 @@ def delete_schedule(schedule_id: str):
 
 
 @router.post("/schedules/{schedule_id}/toggle")
-def toggle_schedule(schedule_id: str):
-    """Toggle a scheduled report active/inactive."""
+def toggle_schedule(schedule_id: str, user: AuthenticatedUser = Depends(get_current_user)):
+    """Toggle a scheduled report active/inactive. Requires authentication."""
     if schedule_id in _scheduled_reports:
         _scheduled_reports[schedule_id]["active"] = not _scheduled_reports[schedule_id]["active"]
         return _scheduled_reports[schedule_id]
@@ -426,16 +429,16 @@ def toggle_schedule(schedule_id: str):
 # ---------------------------------------------------------------------------
 
 @router.get("/session/{session_id}")
-def get_session(session_id: str):
-    """Get conversation history for a session."""
+def get_session(session_id: str, user: AuthenticatedUser = Depends(get_current_user)):
+    """Get conversation history for a session. Requires authentication."""
     session_id = _validate_session_id(session_id)
     history = _sessions.get(session_id, [])
     return {"session_id": session_id, "history": history}
 
 
 @router.delete("/session/{session_id}")
-def clear_session(session_id: str):
-    """Clear conversation history for a session."""
+def clear_session(session_id: str, user: AuthenticatedUser = Depends(get_current_user)):
+    """Clear conversation history for a session. Requires authentication."""
     session_id = _validate_session_id(session_id)
     if session_id in _sessions:
         del _sessions[session_id]
@@ -449,9 +452,10 @@ def clear_session(session_id: str):
 @router.post("/upload", response_model=UploadResponse)
 def upload_csv(
     file: UploadFile = File(...),
-    table_name: str | None = Form(None)
+    table_name: str | None = Form(None),
+    user: AuthenticatedUser = Depends(get_current_user)
 ):
-    """Upload a CSV file and make it queryable."""
+    """Upload a CSV file and make it queryable. Requires authentication."""
     # Validate filename
     if not file.filename or not file.filename.lower().endswith(".csv"):
         raise HTTPException(status_code=400, detail="Only CSV files are supported")
@@ -506,8 +510,8 @@ def upload_csv(
 
 
 @router.get("/preview/{dataset}")
-def preview_dataset(dataset: str, limit: int = 100):
-    """Return raw preview rows from a dataset without going through the LLM."""
+def preview_dataset(dataset: str, limit: int = 100, user: AuthenticatedUser = Depends(get_current_user)):
+    """Return raw preview rows from a dataset without going through the LLM. Requires authentication."""
     tables = query_engine.get_table_names()
     if dataset not in tables:
         raise HTTPException(status_code=404, detail=f"Dataset '{dataset}' not found")
